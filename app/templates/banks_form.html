@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header class="header">
+    <h1>{% if bank %}Edit Bank{% else %}New Bank{% endif %}</h1>
+</header>
+
+<main class="content-container" style="display: flex; justify-content: center; align-items: flex-start;">
+    <div class="form-card">
+        <form id="bank_form" action="{% if bank %}{{ url_for('banks.edit_bank', id=bank.id) }}{% else %}{{ url_for('banks.new_bank') }}{% endif %}" method="POST" class="form-single-column">
+
+            <!-- Bank Name -->
+            <div class="form-group">
+                <label>Bank Name</label>
+                <div class="input-wrapper">
+                    <input type="text" name="bank_name" id="name" class="form-control" value="{{ bank.name if bank else '' }}" placeholder="e.g. My Custom Bank" required>
+                </div>
+            </div>
+
+            <!-- Region -->
+            <div class="form-group">
+                <label>Region</label>
+                <div class="select-wrapper">
+                    <select name="region" id="region" class="form-control" required>
+                        <option value="Hungary" {% if bank and bank.region == 'Hungary' %}selected{% endif %}>Hungary</option>
+                        <option value="EU" {% if bank and bank.region == 'EU' %}selected{% endif %}>EU</option>
+                        <option value="USA" {% if bank and bank.region == 'USA' %}selected{% endif %}>USA</option>
+                        <option value="CH" {% if bank and bank.region == 'CH' %}selected{% endif %}>CH</option>
+                        <option value="Other" {% if bank and bank.region == 'Other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Gombok -->
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">Save Bank</button>
+                <a href="{{ url_for('banks.banks') }}" class="btn-secondary">Cancel</a>
+            </div>
+
+        </form>
+    </div>
+</main>
+{% endblock %}

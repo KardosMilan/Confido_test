@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .form-grid { display: grid; grid-template-columns: 180px 1fr; gap: 16px; align-items: center; max-width: 600px; }
+    .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius); }
+</style>
+
+<header class="header">
+    <h1>View Bank Account</h1>
+</header>
+
+<main class="content-container">
+    <div class="card" style="padding: 24px; max-width: 700px;">
+        <form class="form-grid" method="POST">
+
+            <label>Bank Account Name</label>
+            <input type="text" class="form-control" value="{{ account.name if account else '' }}" disabled>
+
+            <label>Bank Name</label>
+            <select class="form-control" disabled>
+                <option {% if account and account.bank == 'OTP Bank' %}selected{% endif %}>OTP Bank</option>
+                <option {% if account and account.bank == 'Erste Bank' %}selected{% endif %}>Erste Bank</option>
+            </select>
+
+            <label>Account Number (IBAN)</label>
+            <input type="text" class="form-control" value="{{ account.iban if account else '' }}" disabled>
+
+            <label>Currency</label>
+            <select class="form-control" disabled>
+                <option {% if account and account.currency == 'HUF' %}selected{% endif %}>HUF</option>
+                <option {% if account and account.currency == 'EUR' %}selected{% endif %}>EUR</option>
+            </select>
+
+            <label>Status</label>
+            <select class="form-control" disabled>
+                <option {% if account and account.status == 'Active' %}selected{% endif %}>Active</option>
+                <option {% if account and account.status == 'Inactive' %}selected{% endif %}>Inactive</option>
+            </select>
+
+            <div></div>
+            <div style="margin-top: 12px; display: flex; gap: 12px;">
+                <button type="submit" class="btn-primary" href="{{ url_for('approvals.approvals') }}">
+                    <i data-lucide="circle-check"></i> Accept
+                </button>
+                <button type="decline" href="{{ url_for('approvals.approvals') }}" class="btn-secondary">
+                    <i data-lucide="circle-x"></i> Decline
+                </button>
+            </div>
+        </form>
+    </div>
+</main>
+{% endblock %}

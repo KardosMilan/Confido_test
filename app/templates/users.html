@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .account-table { width: 100%; border-collapse: collapse; text-align: left; }
+    .account-table th { position: sticky; top: 0; background-color: #f8fafc; color: var(--text-muted); font-weight: 600; z-index: 10; }
+    .account-table th, .account-table td { padding: 16px 20px; border-bottom: 1px solid var(--border-color); font-size: 14px; }
+    .account-table tr:hover { background-color: #f1f5f9; }
+    .user-cell { display: flex; align-items: center; gap: 12px; }
+    .user-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+    .role-select { padding: 6px 12px; border: 1px solid var(--border-color, #cbd5e1); border-radius: var(--radius, 6px); background-color: #ffffff; font-size: 13px; cursor: pointer; }
+    
+    /* Piros szín a törlés gombnak a dropdownban */
+    .dropdown-item.delete-item { color: #ef4444; }
+    .dropdown-item.delete-item:hover { background-color: #fef2f2; }
+</style>
+
+<header class="header">
+    <h1>Users</h1>
+</header>
+
+<main class="content-container">
+    <div class="card-full">
+        <div class="table-responsive">
+            <table class="account-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th style="width: 50px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>
+                            <div class="user-cell">
+                                {% if user.picture %}
+                                    <img src="{{ user.picture }}" alt="{{ user.name }}" class="user-avatar">
+                                {% else %}
+                                    <i data-lucide="user" style="width: 24px; height: 24px; color: #64748b;"></i>
+                                {% endif %}
+                                <strong>{{ user.name or 'N/A' }}</strong>
+                            </div>
+                        </td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            {% if current_user.role == 'Admin' %}
+                                <form action="{{ url_for('users.update_role', user_id=user.id) }}" method="POST" style="margin: 0;">
+                                    <select name="role" class="role-select" onchange="this.form.submit()">
+                                        <option value="User" {% if user.role != 'Admin' %}selected{% endif %}>User</option>
+                                        <option value="Approver" {% if user.role != 'Admin' %}selected{% endif %}>Approver</option>
+                                        <option value="Admin" {% if user.role == 'Admin' %}selected{% endif %}>Admin</option>
+                                    </select>
+                                </form>
+                            {% else %}
+                                <span class="badge {{ 'badge-active' if user.role == 'Admin' else 'badge-inactive' }}">
+                                    {{ user.role or 'User' }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="action-cell">
+                            <button type="button" class="icon-btn" onclick="toggleDropdown(event)">
+                                <i data-lucide="more-vertical"></i>
+                            </button>
+                            <div class="dropdown-menu">
+                                {# Ha a saját fiókunk és nem vagyunk adminok, megjelenik a Make me Admin #}
+                                {% if user.id == current_user.id and current_user.role != 'Admin' %}
+                                    <button type="button" class="dropdown-item" onclick="promptMakeAdmin()">
+                                        Make me Admin
+                                    </button>
+                                {% endif %}
+
+                                {# Ha nem a saját fiókunk, törölhetjük #}
+                                {% if user.id != current_user.id %}
+                                    <button type="button" class="dropdown-item delete-item" onclick="promptDeleteUser({{ user.id }}, '{{ user.name or user.email }}')">
+                                        Delete User
+                                    </button>
+                                {% else %}
+                                    {% if current_user.role == 'Admin' %}
+                                        <span class="dropdown-item" style="color: var(--text-muted); cursor: default; opacity: 0.6;">
+                                            Current User
+                                        </span>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    function toggleDropdown(event) {
+        event.stopPropagation();
+        const currentMenu = event.currentTarget.nextElementSibling;
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+            if (menu !== currentMenu) menu.classList.remove('show');
+        });
+        currentMenu.classList.toggle('show');
+    }
+
+    window.addEventListener('click', function() {
+        document.querySelectorAll('.dropdown-menu').forEach(menu => menu.classList.remove('show'));
+    });
+
+    // 1. Adminná válás
+    function promptMakeAdmin() {
+        Swal.fire({
+            title: 'Become Admin',
+            text: 'Enter the admin password to promote your account:',
+            input: 'password',
+            inputPlaceholder: 'Admin password...',
+            showCancelButton: true,
+            confirmButtonText: 'Confirm',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#2563eb',
+            cancelButtonColor: '#64748b',
+            preConfirm: (password) => {
+                if (!password) {
+                    Swal.showValidationMessage('Password is required!');
+                    return false;
+                }
+                return fetch("{{ url_for('users.make_admin') }}", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ password: password })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => { throw new Error(data.message || 'Incorrect password!'); });
+                    }
+                    return response.json();
+                })
+                .catch(error => { Swal.showValidationMessage(error.message); });
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: result.value.message,
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => window.location.reload());
+            }
+        });
+    }
+
+    // 2. User Törlése (Admin jelszóval)
+    function promptDeleteUser(userId, userName) {
+        Swal.fire({
+            title: `Delete ${userName}?`,
+            text: 'Enter the admin password to confirm deletion:',
+            input: 'password',
+            inputPlaceholder: 'Admin password...',
+            showCancelButton: true,
+            confirmButtonText: 'Delete User',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            preConfirm: (password) => {
+                if (!password) {
+                    Swal.showValidationMessage('Password is required!');
+                    return false;
+                }
+                return fetch(`/users/${userId}/delete`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ password: password })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => { throw new Error(data.message || 'Incorrect password!'); });
+                    }
+                    return response.json();
+                })
+                .catch(error => { Swal.showValidationMessage(error.message); });
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Deleted!',
+                    text: result.value.message,
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => window.location.reload());
+            }
+        });
+    }
+</script>
+{% endblock %}

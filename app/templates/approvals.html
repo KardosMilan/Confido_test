@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .account-table { 
+        width: 100%; 
+        border-collapse: collapse; 
+        text-align: left; 
+    }
+    .account-table th { 
+        position: sticky; 
+        top: 0; 
+        background-color: #f8fafc; 
+        color: var(--text-muted); 
+        font-weight: 600; 
+        z-index: 10;
+    }
+    .account-table th, .account-table td { 
+        padding: 16px 20px; 
+        border-bottom: 1px solid var(--border-color); 
+        font-size: 14px; 
+    }
+    .account-table tr:hover { 
+        background-color: #f1f5f9; 
+    }
+
+    /* MODERN, MINIMALISTA LAPFÜLEK STÍLUSA */
+    .tabs-container {
+        padding: 16px 20px;
+        background-color: #ffffff;
+        border-bottom: 1px solid var(--border-color, #e2e8f0);
+    }
+
+    .tabs-header {
+        display: inline-flex;
+        background-color: #f1f5f9;
+        padding: 4px;
+        border-radius: 8px;
+        gap: 4px;
+    }
+
+    .tab-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border: none;
+        background: transparent;
+        font-size: 13px;
+        font-weight: 600;
+        color: #64748b;
+        cursor: pointer;
+        border-radius: 6px;
+        transition: all 0.2s ease-in-out;
+    }
+
+    .tab-btn:hover {
+        color: #0f172a;
+    }
+
+    /* AKTÍV FÜL: Mély sötétszürke (Charcoal) letisztult kiemelés */
+    .tab-btn.active {
+        background-color: #0f172a;
+        color: #ffffff;
+        box-shadow: 0 2px 4px rgba(15, 23, 42, 0.12);
+    }
+
+    /* KÖR ALAKÚ SZÁMLÁLÓ JELVÉNY (BADGE) STÍLUS */
+    .badge-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 6px;
+        border-radius: 50px;
+        font-size: 11px;
+        font-weight: 700;
+        background-color: #e2e8f0;
+        color: #475569;
+        transition: all 0.2s ease-in-out;
+    }
+
+    /* Aktív fülön finom, áttetsző fehér jelvény */
+    .tab-btn.active .badge-count {
+        background-color: rgba(255, 255, 255, 0.2);
+        color: #ffffff;
+    }
+
+    .tab-pane {
+        display: none;
+    }
+
+    .tab-pane.active {
+        display: block;
+    }
+</style>
+
+<header class="header">
+    <h1>Approvals</h1>
+</header>
+
+<main class="content-container">
+    <div class="card-full">
+        <!-- Lapfülek számláló jelvényekkel -->
+        <div class="tabs-container">
+            <div class="tabs-header">
+                <button type="button" class="tab-btn active" onclick="switchTab(event, 'tab-trusts')">
+                    Pending Trusts
+                    <span class="badge-count">{{ trusts|length }}</span>
+                </button>
+                <button type="button" class="tab-btn" onclick="switchTab(event, 'tab-accounts')">
+                    Pending Accounts
+                    <span class="badge-count">{{ accounts|length }}</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 1. LAPFÜL: Pending Trusts -->
+        <div id="tab-trusts" class="tab-pane active">
+            <div class="table-responsive">
+                <table class="account-table">
+                    <thead>
+                        <tr>
+                            <th>Trust Name</th>
+                            <th>Contract number</th>
+                            <th>Tax Number</th>
+                            <th>Contract Date</th>
+                            <th>End of Management Date</th>
+                            <th>Riporting Currency</th>
+                            <th>Status</th>
+                            <th>State</th>
+                            <th>Creator</th>
+                            <th style="width: 50px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for trust in trusts %}
+                        <tr>
+                            <td><strong>{{ trust.trust_name }}</strong></td>
+                            <td>{{ trust.contract_number or 'N/A' }}</td>
+                            <td>{{ trust.tax_number or 'N/A' }}</td>
+                            <td>{{ trust.contract_date.strftime('%Y-%m-%d') if trust.contract_date else 'N/A' }}</td>
+                            <td>{{ trust.end_date.strftime('%Y-%m-%d') if trust.end_date else 'N/A' }}</td>
+                            <td>{{ trust.currency.code if trust.currency.id else 'N/A' }}</td>
+                            <td>
+                                <span class="badge {{ 'badge-active' if trust.status == 'Active' else 'badge-inactive' }}">
+                                    {{ trust.status }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge {{ 'badge-active' if trust.state == 'Approved' else 'badge-inactive' }}">
+                                    {{ trust.state }}
+                                </span>
+                            </td>
+                            <td>{{ trust.inspector_1_user.name if trust.inspector_1_user else 'N/A' }}</td>
+                            <td class="action-cell">
+                                <button type="button" class="icon-btn" onclick="toggleDropdown(event)">
+                                    <i data-lucide="more-vertical"></i>
+                                </button>
+                                <div class="dropdown-menu">
+                                    <a href="{{ url_for('approvals.approve_trust', trust_id=trust.trust_id) }}" class="dropdown-item">Approve</a>
+                                    <form action="{{ url_for('managed_trusts.delete_managed_trusts_pending', trust_id=trust.trust_id) }}" method="POST" style="margin: 0;">
+                                        <button type="submit" class="dropdown-item delete" onclick="return confirm('Are you sure you want to delete this trust?')">Decline</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 2. LAPFÜL: Pending Accounts -->
+        <div id="tab-accounts" class="tab-pane">
+            <div class="table-responsive">
+                <table class="account-table">
+                    <thead>
+                        <tr>
+                            <th>Account Name</th>
+                            <th>Account Number / IBAN</th>
+                            <th>Bank Name</th>
+                            <th>Currency</th>
+                            <th>Status</th>
+                            <th>State</th>
+                            <th>Creator</th>
+                            <th style="width: 50px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for account in accounts %}
+                        <tr>
+                            <td><strong>{{ account.account_name }}</strong></td>
+                            <td>{{ account.account_number or account.iban or 'N/A' }}</td>
+                            <td>{{ account.bank_name or 'N/A' }}</td>
+                            <td>{{ account.currency.code if account.currency else 'N/A' }}</td>
+                            <td>
+                                <span class="badge {{ 'badge-active' if account.status == 'Active' else 'badge-inactive' }}">
+                                    {{ account.status }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge {{ 'badge-active' if account.state == 'Approved' else 'badge-inactive' }}">
+                                    {{ account.state }}
+                                </span>
+                            </td>
+                            <td>{{ account.creator.name if account.creator else 'N/A' }}</td>
+                            <td class="action-cell">
+                                <button type="button" class="icon-btn" onclick="toggleDropdown(event)">
+                                    <i data-lucide="more-vertical"></i>
+                                </button>
+                                <div class="dropdown-menu">
+                                    <a href="{{ url_for('approvals.approve_account', account_id=account.account_id) }}" class="dropdown-item">Approve</a>
+                                    <form action="{{ url_for('accounts.delete_account_pending', account_id=account.account_id) }}" method="POST" style="margin: 0;">
+                                        <button type="submit" class="dropdown-item delete" onclick="return confirm('Are you sure you want to delete this account?')">Decline</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const flashMessages = {{ messages | tojson }};
+        
+        flashMessages.forEach(function(item) {
+          const category = item[0];
+          const message = item[1];
+          
+          let iconType = 'info';
+          let titleText = 'Message';
+
+          if (category === 'danger' || category === 'error') {
+            iconType = 'error';
+            titleText = 'Warning';
+          } else if (category === 'success') {
+            iconType = 'success';
+            titleText = 'Success';
+          }
+
+          Swal.fire({
+            icon: iconType,
+            title: titleText,
+            text: message,
+            confirmButtonColor: '#2563eb',
+            scrollbarPadding: false, 
+            heightAuto: false
+          });
+        });
+      });
+    </script>
+    {% endif %}
+    {% endwith %}
+
+    <script>
+    function switchTab(event, tabId) {
+        const tabPanes = document.querySelectorAll('.tab-pane');
+        tabPanes.forEach(pane => pane.classList.remove('active'));
+
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        tabBtns.forEach(btn => btn.classList.remove('active'));
+
+        document.getElementById(tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+    </script>
+</main>
+{% endblock %}

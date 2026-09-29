@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .account-table { 
+        width: 100%; 
+        border-collapse: collapse; 
+        text-align: left; 
+    }
+    .account-table th { 
+        position: sticky; 
+        top: 0; 
+        background-color: #f8fafc; 
+        color: var(--text-muted); 
+        font-weight: 600; 
+        z-index: 10;
+    }
+    .account-table th, .account-table td { 
+        padding: 16px 20px; 
+        border-bottom: 1px solid var(--border-color); 
+        font-size: 14px; 
+    }
+    .account-table tr:hover { 
+        background-color: #f1f5f9; 
+    }
+</style>
+
+<header class="header">
+    <h1>Banks</h1>
+    <div class="action-toolbar">
+        <a href="{{ url_for('banks.new_bank') }}" class="btn-primary">
+            + New Bank
+        </a>
+    </div>
+</header>
+
+<main class="content-container">
+    <!-- card-full osztály kitölti a teljes rendelkezésre álló magasságot -->
+    <div class="card-full">
+        <div class="table-responsive">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                    <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-size: 13px;">
+                        <th style="padding: 12px 16px;">BANK ID</th>
+                        <th style="padding: 12px 16px;">BANK NAME</th>
+                        <th style="padding: 12px 16px;">REGION</th>
+                        <th style="padding: 12px 16px; text-align: right;">ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bank in banks %}
+                    <tr style="border-bottom: 1px solid var(--border-color); font-size: 14px;">
+                        <td style="padding: 12px 16px; font-weight: 600;">{{ bank.bank_id or 'N/A'}}</td>
+                        <td style="padding: 12px 16px;">{{ bank.bank_name or 'N/A'}}</td>
+                        <td style="padding: 12px 16px;"><span class="badge badge-active">{{ bank.region or 'N/A'}}</span></td>
+                        <td style="padding: 12px 16px; text-align: right; display: flex; justify-content: flex-end; gap: 8px;">
+                            <a href="{{ url_for('banks.edit_bank', id=bank.bank_id) }}" class="btn-secondary" style="padding: 4px 10px; font-size: 12px;">Edit</a>
+                            <form action="{{ url_for('banks.delete_bank', id=bank.bank_id) }}" method="POST" class="delete-form" style="margin: 0;">
+                                 <button type="submit" class="btn-secondary" style="background-color: var(--danger); padding: 4px 10px; font-size: 12px;">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                       <tr><td colspan="3">No available banks</td></tr>
+                    {% endfor %}
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+<!-- FLASH ÜZENETEK KEZELÉSE SWEETALERT2-VEL -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // A Jinja2 üzeneteket átalakítjuk tiszta JavaScript tömbbé
+        const flashMessages = {{ messages | tojson }};
+        
+        flashMessages.forEach(function(item) {
+          const category = item[0];
+          const message = item[1];
+          
+          let iconType = 'info';
+          let titleText = 'Message';
+
+          if (category === 'danger' || category === 'error') {
+            iconType = 'error';
+            titleText = 'Warning';
+          } else if (category === 'success') {
+            iconType = 'success';
+            titleText = 'Success';
+          }
+
+          Swal.fire({
+            icon: iconType,
+            title: titleText,
+            text: message,
+            confirmButtonColor: '#2563eb',
+            scrollbarPadding: false,
+            heightAuto: false
+            });
+        });
+      });
+    </script>
+  {% endif %}
+{% endwith %}
+
+</main>
+{% endblock %}

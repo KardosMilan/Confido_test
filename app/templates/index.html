@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header class="header">
+    <h1>Home</h1>
+</header>
+
+<main class="content-container">
+    <div class="welcome-banner">
+        <h2>Welcome, {{ current_user.name or current_user.email }}!</h2>
+        <p>Select a module below to manage your financial portfolio.</p>
+    </div>
+
+    <div class="dashboard-grid">
+
+        <!-- trusts Tile -->
+        <a href="{{ url_for('managed_trusts.managed_trusts') }}" class="dashboard-card">
+            <div class="card-icon">
+                <i data-lucide="briefcase"></i>
+            </div>
+            <div class="card-content">
+                <h3>Trusts</h3>
+                <p>Overview and tracking of managed portfolio trusts.</p>
+            </div>
+            <div class="card-arrow">
+                <i data-lucide="arrow-right"></i>
+            </div>
+        </a>
+
+        <!-- Accounts Tile -->
+        <a href="{{ url_for('bank_accounts.bank_accounts') }}" class="dashboard-card">
+            <div class="card-icon">
+                <i data-lucide="landmark"></i>
+            </div>
+            <div class="card-content">
+                <h3>Accounts</h3>
+                <p>Manage bank accounts, balances, and financial details.</p>
+            </div>
+            <div class="card-arrow">
+                <i data-lucide="arrow-right"></i>
+            </div>
+        </a>
+
+        <!-- Reports Tile -->
+        <a href="{{ url_for('main.reports') }}" class="dashboard-card">
+            <div class="card-icon">
+                <i data-lucide="file-text"></i>
+            </div>
+            <div class="card-content">
+                <h3>Reports</h3>
+                <p>Generate and view financial & activity reports.</p>
+            </div>
+            <div class="card-arrow">
+                <i data-lucide="arrow-right"></i>
+            </div>
+        </a>
+    </div>
+</main>
+{% endblock %}

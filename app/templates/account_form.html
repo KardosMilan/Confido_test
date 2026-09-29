@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .form-grid { display: grid; grid-template-columns: 180px 1fr; gap: 16px; align-items: center; max-width: 600px; }
+    .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius); }
+</style>
+
+<header class="header">
+    <h1>{% if account %}Edit Bank Account{% else %}New Bank Account{% endif %}</h1>
+</header>
+
+<main class="content-container">
+    <div class="form-card">
+
+        <form class="form-single-column" method="POST">
+            <!-- Account Name -->
+            <div class="form-group">
+                <label for="bank_account_name">Bank Account Name</label>
+                <div class="input-wrapper">
+                    <i data-lucide="building-2"></i>
+                    <input type="text" id="bank_account_name" name="bank_account_name" class="form-control" placeholder="e.g. Main Operations Account" value="{{ account.bank_account_name if account else '' }}" required>
+                </div>
+            </div>
+
+            <!-- IBAN -->
+            <div class="form-group">
+                <label for="account_number_iban">Account Number (IBAN)</label>
+                <div class="input-wrapper">
+                    <i data-lucide="credit-card"></i>
+                    <input type="text" id="account_number_iban" name="account_number_iban" class="form-control" placeholder="HU42 1177 3000..." value="{{ account.account_number_iban if account else '' }}" required>
+                </div>
+            </div>
+
+            <!-- PFJ -->
+            <div class="form-group">
+                <label for="account_number_pfj">Account Number (PFJ)</label>
+                <div class="input-wrapper">
+                    <i data-lucide="hash"></i>
+                    <input type="text" id="account_number_pfj" name="account_number_pfj" class="form-control" placeholder="Optional PFJ identifier" value="{{ account.account_number_pfj if account else '' }}">
+                </div>
+            </div>
+
+            <!-- Account Type -->
+            <div class="form-group">
+                <label for="type">Account Type</label>
+                <div class="select-wrapper">
+                    <select id="type" name="type" class="form-control" required>
+                        <option value="" disabled {{ 'selected' if not account }}>Select Type...</option>
+                        {% for t in account_types %}
+                            <option value="{{ t }}" {% if account and account.type == t %}selected{% endif %}>{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Bank Selection -->
+            <div class="form-group">
+                <label for="bank_id">Bank Institution</label>
+                <div class="select-wrapper">
+                    <select id="bank_id" name="bank_id" class="form-control" required>
+                        <option value="" disabled {{ 'selected' if not account }}>Select Bank...</option>
+                        {% for b in banks %}
+                            <option value="{{ b.bank_id }}" {% if account and account.bank_id == b.bank_id %}selected{% endif %}>{{ b.bank_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Managed Asset -->
+            <div class="form-group">
+                <label for="asset_id">Managed Asset</label>
+                <div class="select-wrapper">
+                    <select id="asset_id" name="asset_id" class="form-control" required>
+                        <option value="" disabled {{ 'selected' if not account }}>Select Managed Asset...</option>
+                        {% for a in assets %}
+                            <option value="{{ a.asset_id }}" {% if account and account.asset_id == a.asset_id %}selected{% endif %}>{{ a.asset_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Currency -->
+            <div class="form-group">
+                <label for="currency">Currency</label>
+                <div class="select-wrapper">
+                    <select id="currency" name="currency" class="form-control" required>
+                        <option value="" disabled {{ 'selected' if not account }}>Select Currency...</option>
+                        {% for c in currencies %}
+                            <option value="{{ c.currency_id }}" {% if account and account.currency == c.currency_id %}selected{% endif %}>{{ c.code }} - {{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Status -->
+            <div class="form-group">
+                <label for="status">Status</label>
+                <div class="select-wrapper">
+                    <select id="status" name="status" class="form-control">
+                        <option value="Active" {% if not account or account.status == 'Active' %}selected{% endif %}>Active</option>
+                        <option value="Inactive" {% if account and account.status == 'Inactive' %}selected{% endif %}>Inactive</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">
+                    <i data-lucide="check" size="18"></i> Save Account
+                </button>
+                <a href="{{ url_for('bank_accounts.bank_accounts') }}" class="btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</main>
+{% endblock %}
