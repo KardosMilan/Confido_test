@@ -13,7 +13,6 @@
 
     <div class="dashboard-grid">
 
-        <!-- trusts Tile -->
         <a href="{{ url_for('managed_trusts.managed_trusts') }}" class="dashboard-card">
             <div class="card-icon">
                 <i data-lucide="briefcase"></i>
@@ -27,7 +26,6 @@
             </div>
         </a>
 
-        <!-- Accounts Tile -->
         <a href="{{ url_for('bank_accounts.bank_accounts') }}" class="dashboard-card">
             <div class="card-icon">
                 <i data-lucide="landmark"></i>
@@ -41,8 +39,7 @@
             </div>
         </a>
 
-        <!-- Reports Tile -->
-        <a href="{{ url_for('main.reports') }}" class="dashboard-card">
+        <a href="{{ url_for('reports.reports') }}" class="dashboard-card">
             <div class="card-icon">
                 <i data-lucide="file-text"></i>
             </div>

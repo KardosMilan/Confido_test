@@ -1,0 +1,16 @@
+{% macro change_notice(original, entity) -%}
+{% if original %}
+<div class="change-notice">
+    <i data-lucide="info"></i>
+    <span>This is a modification of an existing {{ entity }}. Changed fields show the currently approved value.</span>
+</div>
+{% endif %}
+{%- endmacro %}
+
+{% macro previous_value(original, old, new) -%}
+{% set old_value = '' if old is none else old %}
+{% set new_value = '' if new is none else new %}
+{% if original and old_value != new_value %}
+<span class="field-previous">Previously: {{ old_value if old_value != '' else '-' }}</span>
+{% endif %}
+{%- endmacro %}

@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=3">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=4">
     <script src="https://unpkg.com/lucide@latest"></script>
     {% block head %}{% endblock %}
 </head>
 <body>
-    <!-- SIDEBAR -->
     <aside class="sidebar">
         <div class="brand-container">
             <div class="brand-title">CONFIDO</div>
@@ -47,13 +46,27 @@
                 </a>
             </li>
             <li class="menu-item">
+                <a href="{{ url_for('data_entry.bank_balances') }}" class="menu-link {% if active_page == 'bank_balances' %}open{% endif %}">
+                    <i data-lucide="clipboard-list"></i>
+                    <span>Data Entry</span>
+                </a>
+                <ul class="submenu">
+                    <li>
+                        <a href="{{ url_for('data_entry.bank_balances') }}" class="submenu-link {% if active_page == 'bank_balances' %}active{% endif %}">
+                            <i data-lucide="wallet"></i>
+                            <span>Bank Account Balances</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="menu-item">
                 <a href="{{ url_for('banks.banks') }}" class="menu-link {% if active_page == 'banks' %}active{% endif %}">
                     <i data-lucide="building"></i>
                     <span>Banks</span>
                 </a>
             </li>
             <li class="menu-item">
-                <a href="{{ url_for('main.reports') }}" class="menu-link {% if active_page == 'reports' %}active{% endif %}">
+                <a href="{{ url_for('reports.reports') }}" class="menu-link {% if active_page == 'reports' %}active{% endif %}">
                     <i data-lucide="file-text"></i>
                     <span>Reports</span>
                 </a>
@@ -66,7 +79,6 @@
             </li>
         </ul>
 
-        <!-- SIDEBAR FOOTER (USER CARD) -->
         {% if current_user.is_authenticated %}
         <div class="sidebar-footer">
             <div class="user-card">
@@ -102,61 +114,257 @@
 
         function toggleDropdown(event) {
             event.stopPropagation();
-            const currentMenu = event.currentTarget.nextElementSibling;
+            const button = event.currentTarget;
+            const currentMenu = button.nextElementSibling;
             document.querySelectorAll('.dropdown-menu').forEach(menu => {
                 if (menu !== currentMenu) menu.classList.remove('show');
             });
             currentMenu.classList.toggle('show');
+
+            if (currentMenu.classList.contains('show')) {
+                const gap = 4;
+                const margin = 8;
+                const rect = button.getBoundingClientRect();
+                const menuWidth = currentMenu.offsetWidth;
+                const menuHeight = currentMenu.offsetHeight;
+                const left = Math.max(margin, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - margin));
+                const fitsBelow = rect.bottom + gap + menuHeight <= window.innerHeight - margin;
+                const top = fitsBelow ? rect.bottom + gap : Math.max(margin, rect.top - gap - menuHeight);
+                currentMenu.style.left = left + 'px';
+                currentMenu.style.top = top + 'px';
+            }
         }
+
+        window.addEventListener('scroll', () => {
+            document.querySelectorAll('.dropdown-menu').forEach(menu => menu.classList.remove('show'));
+        }, true);
 
         window.addEventListener('click', () => {
             document.querySelectorAll('.dropdown-menu').forEach(menu => menu.classList.remove('show'));
         });
+
+        function initTableTools() {
+            const table = document.getElementById('sortableTable');
+            if (!table) return;
+
+            const tbody = table.querySelector('tbody');
+            const searchInput = document.getElementById('tableSearch');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const term = this.value.toLowerCase().trim();
+                    Array.from(tbody.rows).forEach(row => {
+                        row.hidden = !row.textContent.toLowerCase().includes(term);
+                    });
+                });
+            }
+
+            const headers = table.querySelectorAll('th[data-sort]');
+            let activeSorts = [];
+
+            headers.forEach(header => {
+                header.addEventListener('click', function(e) {
+                    const col = header.cellIndex;
+                    const existingIndex = activeSorts.findIndex(s => s.col === col);
+
+                    if (!e.shiftKey && existingIndex === -1) {
+                        activeSorts = [];
+                    }
+
+                    if (existingIndex > -1) {
+                        if (activeSorts[existingIndex].dir === 'asc') {
+                            activeSorts[existingIndex].dir = 'desc';
+                        } else {
+                            activeSorts.splice(existingIndex, 1);
+                        }
+                    } else {
+                        activeSorts.push({ col: col, dir: 'asc' });
+                    }
+
+                    const rows = Array.from(tbody.rows);
+                    rows.sort((a, b) => {
+                        for (const sort of activeSorts) {
+                            const valA = a.children[sort.col].textContent.trim();
+                            const valB = b.children[sort.col].textContent.trim();
+                            const cmp = valA.localeCompare(valB, 'hu', { numeric: true, sensitivity: 'base' });
+                            if (cmp !== 0) return sort.dir === 'asc' ? cmp : -cmp;
+                        }
+                        return 0;
+                    });
+                    rows.forEach(r => tbody.appendChild(r));
+
+                    headers.forEach(h => {
+                        const sortObj = activeSorts.find(s => s.col === h.cellIndex);
+                        h.classList.toggle('asc', sortObj?.dir === 'asc');
+                        h.classList.toggle('desc', sortObj?.dir === 'desc');
+                        const icon = h.querySelector('.sort-icon');
+                        if (icon) icon.textContent = sortObj ? (sortObj.dir === 'asc' ? '▲' : '▼') : '↕';
+                    });
+                });
+            });
+        }
+
+        function keepCharacters(value, digitsOnly, headLength, maxLength) {
+            const compact = value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            const country = (compact.match(/^[A-Z]{0,2}/) || [''])[0];
+            if (country.length < 2) return country;
+
+            let body = '';
+            for (const ch of compact.slice(2)) {
+                const isDigit = /\d/.test(ch);
+                if (isDigit || (!digitsOnly && body.length >= headLength)) body += ch;
+            }
+            return (country + body).slice(0, maxLength);
+        }
+
+        const IDENTIFIER_FORMATS = {
+            iban(value) {
+                const compact = keepCharacters(value, value.toUpperCase().startsWith('HU'), 2, value.toUpperCase().startsWith('HU') ? 28 : 34);
+                const groups = compact.slice(4).match(/.{1,8}/g) || [];
+                return [compact.slice(0, 4), ...groups].filter(Boolean).join(' ');
+            },
+            pfj(value) {
+                const digits = value.replace(/\D/g, '').slice(0, 24);
+                return (digits.match(/.{1,8}/g) || []).join('-');
+            },
+            isin(value) {
+                const compact = keepCharacters(value, value.toUpperCase().startsWith('HU'), 0, 12);
+                return (compact.match(/.{1,4}/g) || []).join(' ');
+            },
+        };
+
+        function applyFormat(input, formatter) {
+            const caret = input.selectionStart ?? input.value.length;
+            const significantBefore = input.value.slice(0, caret).replace(/[^A-Za-z0-9]/g, '').length;
+            input.value = formatter(input.value);
+
+            let pos = 0;
+            let seen = 0;
+            while (pos < input.value.length && seen < significantBefore) {
+                if (/[A-Za-z0-9]/.test(input.value[pos])) seen++;
+                pos++;
+            }
+            input.setSelectionRange(pos, pos);
+        }
+
+        function initIdentifierInputs() {
+            document.querySelectorAll('input[data-format]').forEach(input => {
+                const formatter = IDENTIFIER_FORMATS[input.dataset.format];
+                if (!formatter) return;
+                input.value = formatter(input.value);
+                input.addEventListener('input', () => applyFormat(input, formatter));
+            });
+        }
+
+        initTableTools();
+        initIdentifierInputs();
     </script>
-    <!-- SweetAlert2 CDN -->
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        // Globális törlés-kezelő
+        function confirmDelete(form) {
+            const word = form.dataset.confirmWord;
+            const matchesWord = value => (value || '').trim().toLowerCase() === word;
+
+            if (typeof Swal === 'undefined') {
+                const confirmed = word
+                    ? matchesWord(prompt(`Type "${word}" to confirm the deletion.`))
+                    : confirm('Are you sure you want to delete this item?');
+                if (confirmed) form.submit();
+                return;
+            }
+
+            const options = {
+                title: 'Are you sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true
+            };
+            if (word) {
+                Object.assign(options, {
+                    text: `Type "${word}" to confirm. You won't be able to revert this!`,
+                    input: 'text',
+                    inputPlaceholder: word,
+                    inputAttributes: { autocomplete: 'off', autocapitalize: 'off' },
+                    inputValidator: value => matchesWord(value) ? undefined : `Please type "${word}" to confirm.`
+                });
+            }
+            Swal.fire(options).then(result => {
+                if (result.isConfirmed) form.submit();
+            });
+        }
+
+        function confirmAction(form) {
+            const text = form.dataset.confirmText || 'Do you want to continue?';
+
+            if (typeof Swal === 'undefined') {
+                if (confirm(text)) form.submit();
+                return;
+            }
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: text,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#c5a059',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'OK',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true
+            }).then(result => {
+                if (result.isConfirmed) form.submit();
+            });
+        }
+
         document.addEventListener('submit', function(e) {
-            // Megkeressük a .delete-form-ot
-            const form = e.target.closest('.delete-form');
-
-            if (form) {
-                // Megállítjuk az azonnali beküldést!
+            const form = e.target;
+            if (form.classList.contains('delete-form')) {
                 e.preventDefault();
-
-                // 1. Ha a SweetAlert2 elérhető:
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        title: 'Are you sure?',
-                        text: "You won't be able to revert this!",
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#ef4444',
-                        cancelButtonColor: '#64748b',
-                        confirmButtonText: 'Yes, delete it!',
-                        cancelButtonText: 'Cancel',
-                        reverseButtons: true
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            form.submit();
-                        }
-                    });
-                } 
-                // 2. Ha a SweetAlert2 nem töltött be (Fallback):
-                else {
-                    if (confirm('Are you sure you want to delete this item?')) {
-                        form.submit();
-                    }
-                }
+                confirmDelete(form);
+            } else if (form.classList.contains('confirm-form')) {
+                e.preventDefault();
+                confirmAction(form);
             }
         });
     </script>
 
-    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <script>
+        const flashMessages = {{ messages | tojson }};
 
+        flashMessages.forEach(function(item) {
+            const category = item[0];
+            const message = item[1];
 
+            let iconType = 'info';
+            let titleText = 'Message';
+
+            if (category === 'danger' || category === 'error') {
+                iconType = 'error';
+                titleText = 'Warning';
+            } else if (category === 'success') {
+                iconType = 'success';
+                titleText = 'Success';
+            }
+
+            Swal.fire({
+                icon: iconType,
+                title: titleText,
+                text: message,
+                confirmButtonColor: '#2563eb',
+                scrollbarPadding: false,
+                heightAuto: false
+            });
+        });
+    </script>
+    {% endif %}
+    {% endwith %}
 </body>
 </html>

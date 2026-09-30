@@ -2,9 +2,23 @@ from flask import Flask, session
 from flask_scss import Scss
 from app.config import Config
 from app.extensions import db, oauth, login_manager
-from app.models import User, ManagedTrusts
+from app.models import (
+    User,
+    ManagedTrusts,
+    ManagedTrustsPending,
+    BankAccount,
+    BankAccountPending,
+)
+from app.identifiers import format_iban, format_pfj, format_isin
 from datetime import date
 from flask_apscheduler import APScheduler
+
+STATUS_MODELS = (
+    ManagedTrusts,
+    ManagedTrustsPending,
+    BankAccount,
+    BankAccountPending,
+)
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -26,7 +40,16 @@ def create_app(config_class=Config):
         session.permanent = True
         session.modified = True
 
-    # OAuth regisztráció
+    @app.template_filter('amount')
+    def format_amount(value, decimals=2):
+        if value is None:
+            return ''
+        return f'{value:,.{decimals}f}'
+
+    app.add_template_filter(format_iban, 'iban')
+    app.add_template_filter(format_pfj, 'pfj')
+    app.add_template_filter(format_isin, 'isin')
+
     oauth.register(
         name='google',
         client_id=app.config['GOOGLE_CLIENT_ID'],
@@ -37,19 +60,19 @@ def create_app(config_class=Config):
 
     Scss(app)
 
-    #Scheduler
     scheduler = APScheduler()
 
-    def daily_trust_check():
+    def daily_status_check():
         with app.app_context():
             today = date.today()
-            expired_trusts = ManagedTrusts.query.filter(
-                ManagedTrusts.status == 'Active',
-                ManagedTrusts.contract_date < today
-            ).all()
+            for model in STATUS_MODELS:
+                expired_records = model.query.filter(
+                    model.status == 'Active',
+                    model.end_date < today
+                ).all()
 
-            for trust in expired_trusts:
-                trust.status = 'Inactive'
+                for record in expired_records:
+                    record.status = 'Inactive'
 
             db.session.commit()
 
@@ -60,8 +83,8 @@ def create_app(config_class=Config):
     scheduler.init_app(app)
 
     scheduler.add_job(
-        id='daily_trust_deactivation',
-        func=daily_trust_check,
+        id='daily_status_deactivation',
+        func=daily_status_check,
         trigger='cron',
         hour=0,
         minute=5
@@ -69,7 +92,6 @@ def create_app(config_class=Config):
 
     scheduler.start()
 
-    # Blueprint-ek regisztrálása
     from app.main.routes import main_bp
     from app.bank_accounts.routes import bank_accounts_bp
     from app.managed_trusts.routes import managed_trusts_bp
@@ -78,6 +100,8 @@ def create_app(config_class=Config):
     from app.banks.routes import banks_bp
     from app.users.routes import users_bp
     from app.managed_assets.routes import managed_assets_bp
+    from app.data_entry.routes import data_entry_bp
+    from app.reports.routes import reports_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(bank_accounts_bp)
@@ -87,6 +111,8 @@ def create_app(config_class=Config):
     app.register_blueprint(auth_bp)
     app.register_blueprint(banks_bp)
     app.register_blueprint(users_bp)
+    app.register_blueprint(data_entry_bp)
+    app.register_blueprint(reports_bp)
 
     with app.app_context():
         db.create_all()

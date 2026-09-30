@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header class="header">
+    <h1>Reports</h1>
+    <a href="{{ url_for('reports.new_report') }}" class="btn-primary">
+        <i data-lucide="plus"></i> New Report
+    </a>
+    <div class="table-toolbar">
+        <input type="text" id="tableSearch" class="search-input" placeholder="🔍 Search...">
+    </div>
+</header>
+
+<main class="content-container">
+    <div class="card-full">
+        <div class="table-responsive">
+            <table class="account-table" id="sortableTable">
+                <thead>
+                    <tr>
+                        <th data-sort>Report Name <span class="sort-icon">↕</span></th>
+                        <th data-sort>Trust <span class="sort-icon">↕</span></th>
+                        <th data-sort>Report Date <span class="sort-icon">↕</span></th>
+                        <th data-sort>Description <span class="sort-icon">↕</span></th>
+                        <th data-sort>Created By <span class="sort-icon">↕</span></th>
+                        <th data-sort>Last Updated <span class="sort-icon">↕</span></th>
+                        <th class="action-col"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in reports %}
+                    <tr>
+                        <td><strong>{{ report.report_name }}</strong></td>
+                        <td>{{ report.trust.trust_name if report.trust else '-' }}</td>
+                        <td>{{ report.report_date.isoformat() if report.report_date else 'N/A' }}</td>
+                        <td>{{ report.description or '-' }}</td>
+                        <td>{{ report.created_by_user.name if report.created_by_user else 'N/A' }}</td>
+                        <td>
+                            {{ report.updated_at.strftime('%Y-%m-%d %H:%M') if report.updated_at else 'N/A' }}
+                            <span class="cell-note">by {{ report.updated_by_user.name if report.updated_by_user else 'N/A' }}</span>
+                        </td>
+                        <td class="action-cell">
+                            <button type="button" class="icon-btn" onclick="toggleDropdown(event)">
+                                <i data-lucide="more-vertical"></i>
+                            </button>
+                            <div class="dropdown-menu">
+                                <a href="{{ url_for('reports.edit_report', report_id=report.report_id) }}" class="dropdown-item">Edit</a>
+                                <form action="{{ url_for('reports.delete_report', report_id=report.report_id) }}" method="POST" class="delete-form">
+                                    <button type="submit" class="dropdown-item delete">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr class="empty-row">
+                        <td colspan="7">No reports yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+{% endblock %}

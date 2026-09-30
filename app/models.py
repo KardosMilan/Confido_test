@@ -4,7 +4,6 @@ from datetime import datetime
 from flask_login import UserMixin
 from app.extensions import db
 
-# User LOGIN
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
 
@@ -22,7 +21,28 @@ class AccountType(str, Enum):
     CURRENT = "Current Account"
     SECURITIES = "Securities Account"
 
-# --- SEGÉDTÁBLÁK ---
+class AssetType(str, Enum):
+    SECURITIES = "Securities"
+    EQUITY_INTERESTS = "Equity Interests"
+    RECEIVABLES = "Receivables"
+    LIABILITIES = "Liabilities"
+
+ASSET_TYPE_FIELDS = {
+    AssetType.SECURITIES.value: ('isin', 'nominal_value', 'price_decimals'),
+    AssetType.EQUITY_INTERESTS.value: ('nominal_value',),
+    AssetType.RECEIVABLES.value: (),
+    AssetType.LIABILITIES.value: (),
+}
+
+TRUST_FIELDS = ('trust_name', 'contract_number', 'tax_number', 'contract_date', 'end_date', 'riporting_currency', 'status')
+ACCOUNT_FIELDS = ('trust_id', 'bank_id', 'currency_id', 'type', 'account_number_iban', 'account_number_pfj', 'bank_account_name', 'contract_date', 'end_date', 'status')
+ASSET_FIELDS = ('asset_type', 'asset_name', 'currency_id', 'isin', 'nominal_value', 'price_decimals')
+
+
+def copy_fields(source, target, fields):
+    for field in fields:
+        setattr(target, field, getattr(source, field))
+
 class Currency(db.Model):
     __tablename__ = 'currency'
     
@@ -35,7 +55,6 @@ class Currency(db.Model):
 def seed_currencies():
     if Currency.query.first() is None:
         currencies_data = [
-            # --- Leggyakoribb globális és európai devizák ---
             {"code": "HUF", "name": "Magyar forint", "symbol": "Ft", "decimals": 0},
             {"code": "EUR", "name": "Euró", "symbol": "€", "decimals": 2},
             {"code": "USD", "name": "Amerikai dollár", "symbol": "$", "decimals": 2},
@@ -61,7 +80,6 @@ def seed_currencies():
             {"code": "GEL", "name": "Grúz lari", "symbol": "₾", "decimals": 2},
             {"code": "AMD", "name": "Örmény dram", "symbol": "֏", "decimals": 2},
 
-            # --- Közel-Kelet és Észak-Afrika ---
             {"code": "TRY", "name": "Török líra", "symbol": "₺", "decimals": 2},
             {"code": "ILS", "name": "Izraeli új sékel", "symbol": "₪", "decimals": 2},
             {"code": "AED", "name": "EAE-dirham", "symbol": "AED", "decimals": 2},
@@ -78,7 +96,6 @@ def seed_currencies():
             {"code": "DZD", "name": "Algériai dinár", "symbol": "DA", "decimals": 2},
             {"code": "TND", "name": "Tunéziai dinár", "symbol": "DT", "decimals": 3},
 
-            # --- Ázsia és Csendes-óceáni térség ---
             {"code": "CNY", "name": "Kínai jüan", "symbol": "¥", "decimals": 2},
             {"code": "INR", "name": "Indiai rúpia", "symbol": "₹", "decimals": 2},
             {"code": "SGD", "name": "Szingapúri dollár", "symbol": "S$", "decimals": 2},
@@ -108,7 +125,6 @@ def seed_currencies():
             {"code": "FJD", "name": "Fidzsi-szigeteki dollár", "symbol": "FJ$", "decimals": 2},
             {"code": "PGK", "name": "Pápua új-guineai kina", "symbol": "K", "decimals": 2},
 
-            # --- Észak-, Közép- és Dél-Amerika ---
             {"code": "MXN", "name": "Mexikói peso", "symbol": "Mex$", "decimals": 2},
             {"code": "BRL", "name": "Brazil real", "symbol": "R$", "decimals": 2},
             {"code": "ARS", "name": "Argentin peso", "symbol": "ARS$", "decimals": 2},
@@ -132,7 +148,6 @@ def seed_currencies():
             {"code": "HTG", "name": "Haiti gourde", "symbol": "G", "decimals": 2},
             {"code": "VES", "name": "Venezuelai bolívar", "symbol": "Bs.S", "decimals": 2},
 
-            # --- Fekete-Afrika ---
             {"code": "ZAR", "name": "Dél-afrikai rand", "symbol": "R", "decimals": 2},
             {"code": "NGN", "name": "Nigériai naira", "symbol": "₦", "decimals": 2},
             {"code": "KES", "name": "Keniai shilling", "symbol": "KSh", "decimals": 2},
@@ -150,7 +165,6 @@ def seed_currencies():
             {"code": "MZN", "name": "Mozambiki metical", "symbol": "MT", "decimals": 2},
             {"code": "AOA", "name": "Angolai kwanza", "symbol": "Kz", "decimals": 2},
 
-            # --- Egyéb speciális / Nemzetközi ISO devizák ---
             {"code": "XPF", "name": "CFP-frank", "symbol": "FCFP", "decimals": 0},
             {"code": "RUB", "name": "Orosz rubel", "symbol": "₽", "decimals": 2},
             {"code": "BYN", "name": "Fehérorosz rubel", "symbol": "Br", "decimals": 2},
@@ -419,22 +433,35 @@ def seed_banks():
             db.session.add(Bank(bank_id=b["bank_id"], bank_name=b["name"], region=b["region"]))
         db.session.commit()
 
-# --- FŐ TÁBLÁK ---
 
 
 class BankAccountBalance(db.Model):
     __tablename__ = 'bank_account_balance'
     account_id = db.Column('Bank Account ID', db.Integer, db.ForeignKey('bank_account.Account ID'), primary_key=True)
     riport_id = db.Column('Riport ID', db.Integer, db.ForeignKey('riport_date.Riport ID'), primary_key=True)
-    balance = db.Column('Balance', db.Numeric(15, 2))
+    balance = db.Column('Balance', db.Numeric(18, 3))
+    state = db.Column('State', db.String(50))
+    inspector_1 = db.Column('Inspector 1', db.Integer, db.ForeignKey('users.id'), nullable=True)
+    inspector_2 = db.Column('Inspector 2', db.Integer, db.ForeignKey('users.id'), nullable=True)
+    approval_time = db.Column('ApprovalTime', db.DateTime, default=datetime.utcnow)
+
+    inspector_1_user = db.relationship('User', foreign_keys=[inspector_1])
+    inspector_2_user = db.relationship('User', foreign_keys=[inspector_2])
 
 class BankAccountPendingBalance(db.Model):
     __tablename__ = 'bank_account_pending_balance'
-    account_id = db.Column('Bank Account ID', db.Integer, db.ForeignKey('bank_account_pending.Account ID'), primary_key=True)
+    account_id = db.Column('Bank Account ID', db.Integer, db.ForeignKey('bank_account.Account ID'), primary_key=True)
     riport_id = db.Column('Riport ID', db.Integer, db.ForeignKey('riport_date.Riport ID'), primary_key=True)
-    balance = db.Column('Balance', db.Numeric(15, 2))
+    balance = db.Column('Balance', db.Numeric(18, 3))
+    state = db.Column('State', db.String(50))
+    inspector_1 = db.Column('Inspector 1', db.Integer, db.ForeignKey('users.id'), nullable=True)
+    inspector_2 = db.Column('Inspector 2', db.Integer, db.ForeignKey('users.id'), nullable=True)
+    approval_time = db.Column('ApprovalTime', db.DateTime, default=datetime.utcnow)
 
-# --- STAGING TÁBLÁK ---
+    account = db.relationship('BankAccount', foreign_keys=[account_id], back_populates='pending_balances')
+    riport_date = db.relationship('RiportDate', foreign_keys=[riport_id])
+    inspector_1_user = db.relationship('User', foreign_keys=[inspector_1])
+
 class BankAccount(db.Model):
     __tablename__ = 'bank_account'
     account_id = db.Column('Account ID', db.Integer, primary_key=True)
@@ -454,11 +481,12 @@ class BankAccount(db.Model):
     approval_time = db.Column('ApprovalTime', db.DateTime, default=datetime.utcnow)
     
 
-    # Kapcsolatok
     currency = db.relationship('Currency', foreign_keys=[currency_id])
     inspector_1_user = db.relationship('User', foreign_keys=[inspector_1])
     inspector_2_user = db.relationship('User', foreign_keys=[inspector_2])
     balances = db.relationship('BankAccountBalance', backref='bank_account', lazy=True)
+    pending_balances = db.relationship('BankAccountPendingBalance', back_populates='account', lazy=True)
+    pending_changes = db.relationship('BankAccountPending', back_populates='original', cascade='all, delete-orphan')
     trust = db.relationship('ManagedTrusts', foreign_keys=[trust_id])
 
 
@@ -477,19 +505,19 @@ class ManagedTrusts(db.Model):
     inspector_2 = db.Column('Inspector 2', db.Integer, db.ForeignKey('users.id'), nullable=True)
     approval_time = db.Column('ApprovalTime', db.DateTime, default=datetime.utcnow)
 
-    # Kapcsolatok
     bank_accounts = db.relationship('BankAccount', backref='managed_trust', lazy=True)
+    pending_changes = db.relationship('ManagedTrustsPending', back_populates='original', cascade='all, delete-orphan')
+    reports = db.relationship('Report', back_populates='trust')
     currency = db.relationship('Currency', foreign_keys=[riporting_currency])
     inspector_1_user = db.relationship('User', foreign_keys=[inspector_1])
     inspector_2_user = db.relationship('User', foreign_keys=[inspector_2])
 
 
-# --- STAGING / PENDING TÁBLÁK ---
 
 class BankAccountPending(db.Model):
     __tablename__ = 'bank_account_pending'
     account_id = db.Column('Account ID', db.Integer, primary_key=True)
-    # PENDING TRUST-RA MUTATÓ KÜLSŐ KULCS (Ez javítja a NoForeignKeysError-t):
+    original_account_id = db.Column('Original Account ID', db.Integer, db.ForeignKey('bank_account.Account ID'), nullable=True)
     trust_id = db.Column('Trust ID', db.Integer, db.ForeignKey('managed_trusts.Trust ID'), nullable=True)
     bank_id = db.Column('Bank ID', db.Integer, db.ForeignKey('bank.BANK ID'), nullable=True)
     currency_id = db.Column('Currency', db.Integer, db.ForeignKey('currency.id'), nullable=True)
@@ -506,16 +534,17 @@ class BankAccountPending(db.Model):
     approval_time = db.Column('ApprovalTime', db.DateTime, default=datetime.utcnow)
     
 
-    # Kapcsolatok
     currency = db.relationship('Currency', foreign_keys=[currency_id])
+    bank = db.relationship('Bank', foreign_keys=[bank_id])
     inspector_1_user = db.relationship('User', foreign_keys=[inspector_1])
-    balances = db.relationship('BankAccountPendingBalance', backref='bank_account_pending', lazy=True)
     trust = db.relationship('ManagedTrusts', foreign_keys=[trust_id])
+    original = db.relationship('BankAccount', foreign_keys=[original_account_id], back_populates='pending_changes')
 
 
 class ManagedTrustsPending(db.Model):
     __tablename__ = 'managed_trusts_pending'
     trust_id = db.Column('Trust ID', db.Integer, primary_key=True)
+    original_trust_id = db.Column('Original Trust ID', db.Integer, db.ForeignKey('managed_trusts.Trust ID'), nullable=True)
     trust_name = db.Column('Trust Name', db.String(100))
     contract_number = db.Column('Contract number', db.String(50))
     tax_number = db.Column('Tax number', db.String(50))
@@ -528,41 +557,65 @@ class ManagedTrustsPending(db.Model):
     inspector_2 = db.Column('Inspector 2', db.Integer, db.ForeignKey('users.id'), nullable=True)
     approval_time = db.Column('ApprovalTime', db.DateTime, default=datetime.utcnow)
 
-    # Kapcsolatok
     currency = db.relationship('Currency', foreign_keys=[riporting_currency])
     inspector_1_user = db.relationship('User', foreign_keys=[inspector_1])
     inspector_2_user = db.relationship('User', foreign_keys=[inspector_2])
+    original = db.relationship('ManagedTrusts', foreign_keys=[original_trust_id], back_populates='pending_changes')
 
 
 class ManagedAssets(db.Model):
     __tablename__ = 'managed_assets'
     asset_id = db.Column('asset ID', db.Integer, primary_key=True)
+    asset_type = db.Column('Asset Type', db.String(50))
     asset_name = db.Column('asset Name', db.String(100))
-    contract_number = db.Column('Contract number', db.String(50))
-    tax_number = db.Column('Tax number', db.String(50))
-    contract_date = db.Column('Contract Date', db.Date)
-    end_date = db.Column('End of Management Date', db.Date)
-    riporting_currency = db.Column('Riporting currency', db.Integer, db.ForeignKey('currency.id'), nullable=True)
-    status = db.Column('Status', db.String(50))
+    currency_id = db.Column('Currency', db.Integer, db.ForeignKey('currency.id'), nullable=True)
+    isin = db.Column('ISIN', db.String(12))
+    nominal_value = db.Column('Nominal Value', db.Numeric(18, 2))
+    price_decimals = db.Column('Price Decimals', db.Integer)
     state = db.Column('State', db.String(50))
     inspector_1 = db.Column('Inspector 1', db.Integer, db.ForeignKey('users.id'), nullable=True)
     inspector_2 = db.Column('Inspector 2', db.Integer, db.ForeignKey('users.id'), nullable=True)
     approval_time = db.Column('ApprovalTime', db.DateTime, default=datetime.utcnow)
 
+    currency = db.relationship('Currency', foreign_keys=[currency_id])
+    inspector_1_user = db.relationship('User', foreign_keys=[inspector_1])
+    inspector_2_user = db.relationship('User', foreign_keys=[inspector_2])
+    pending_changes = db.relationship('ManagedAssetsPending', back_populates='original', cascade='all, delete-orphan')
 
 
 class ManagedAssetsPending(db.Model):
     __tablename__ = 'managed_assets_pending'
     asset_id = db.Column('asset ID', db.Integer, primary_key=True)
+    original_asset_id = db.Column('Original Asset ID', db.Integer, db.ForeignKey('managed_assets.asset ID'), nullable=True)
+    asset_type = db.Column('Asset Type', db.String(50))
     asset_name = db.Column('asset Name', db.String(100))
-    contract_number = db.Column('Contract number', db.String(50))
-    tax_number = db.Column('Tax number', db.String(50))
-    contract_date = db.Column('Contract Date', db.Date)
-    end_date = db.Column('End of Management Date', db.Date)
-    riporting_currency = db.Column('Riporting currency', db.Integer, db.ForeignKey('currency.id'), nullable=True)
-    status = db.Column('Status', db.String(50))
+    currency_id = db.Column('Currency', db.Integer, db.ForeignKey('currency.id'), nullable=True)
+    isin = db.Column('ISIN', db.String(12))
+    nominal_value = db.Column('Nominal Value', db.Numeric(18, 2))
+    price_decimals = db.Column('Price Decimals', db.Integer)
     state = db.Column('State', db.String(50))
     inspector_1 = db.Column('Inspector 1', db.Integer, db.ForeignKey('users.id'), nullable=True)
     inspector_2 = db.Column('Inspector 2', db.Integer, db.ForeignKey('users.id'), nullable=True)
     approval_time = db.Column('ApprovalTime', db.DateTime, default=datetime.utcnow)
 
+    currency = db.relationship('Currency', foreign_keys=[currency_id])
+    inspector_1_user = db.relationship('User', foreign_keys=[inspector_1])
+    inspector_2_user = db.relationship('User', foreign_keys=[inspector_2])
+    original = db.relationship('ManagedAssets', foreign_keys=[original_asset_id], back_populates='pending_changes')
+
+
+class Report(db.Model):
+    __tablename__ = 'reports'
+    report_id = db.Column('Report ID', db.Integer, primary_key=True)
+    report_name = db.Column('Report Name', db.String(100), nullable=False)
+    trust_id = db.Column('Trust ID', db.Integer, db.ForeignKey('managed_trusts.Trust ID'), nullable=True)
+    report_date = db.Column('Report Date', db.Date)
+    description = db.Column('Description', db.String(500))
+    created_by = db.Column('Created By', db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column('Created At', db.DateTime, default=datetime.utcnow)
+    updated_by = db.Column('Updated By', db.Integer, db.ForeignKey('users.id'), nullable=True)
+    updated_at = db.Column('Updated At', db.DateTime, default=datetime.utcnow)
+
+    trust = db.relationship('ManagedTrusts', foreign_keys=[trust_id], back_populates='reports')
+    created_by_user = db.relationship('User', foreign_keys=[created_by])
+    updated_by_user = db.relationship('User', foreign_keys=[updated_by])

@@ -4,7 +4,6 @@ from flask_login import login_required, current_user
 from app.extensions import db
 from app.models import User
 
-# Állíts be egy admin jelszót (érdemes .env fájlból olvasni)
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
 
 users_bp = Blueprint('users', __name__)
@@ -18,7 +17,6 @@ def list_users():
 @users_bp.route('/users/<int:user_id>/update-role', methods=['POST'])
 @login_required
 def update_role(user_id):
-    # Csak Admin módosíthat Role-t
     if current_user.role != 'Admin':
         return jsonify({'error': 'No access!'}), 403
     

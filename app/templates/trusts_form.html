@@ -1,21 +1,15 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<style>
-    .form-grid { display: grid; grid-template-columns: 180px 1fr; gap: 16px; align-items: center; max-width: 600px; }
-    .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius); }
-</style>
 
 <header class="header">
-    <h1>{% if trust %}Edit Managed Trust{% else %}New Managed Trust{% endif %}</h1>
+    <h1>{{ title }}</h1>
 </header>
 
 <main class="content-container">
     <div class="form-card">
-        <!-- Az Action automatikusan vált a New és az Edit útvonal között -->
-        <form id="trust_form" action="{% if trust %}{{ url_for('managed_trusts.edit_managed_trusts', trust_id=trust.trust_id) }}{% else %}{{ url_for('managed_trusts.new_managed_trust') }}{% endif %}" method="POST" class="form-single-column">
+        <form id="trust_form" action="{{ form_action }}" method="POST" class="form-single-column">
             
-            <!-- trust Name -->
             <div class="form-group">
                 <label>Trust Name</label>
                 <div class="input-wrapper">
@@ -23,12 +17,10 @@
                         <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
                         <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
                     </svg>
-                    <!-- name="trust_name" HOZZÁADVA -->
                     <input type="text" name="trust_name" id="trust_name" class="form-control" value="{{ trust.trust_name if trust else '' }}" placeholder="e.g. Real Estate Portfolio Alpha" required>
                 </div>
             </div>
 
-            <!-- Contract Number -->
             <div class="form-group">
                 <label>Contract Number</label>
                 <div class="input-wrapper">
@@ -38,12 +30,10 @@
                         <line x1="10" y1="3" x2="8" y2="21"></line>
                         <line x1="16" y1="3" x2="14" y2="21"></line>
                     </svg>
-                    <!-- name="contract_number" HOZZÁADVA -->
                     <input type="text" name="contract_number" id="contract_number" class="form-control" value="{{ trust.contract_number if trust else '' }}" placeholder="e.g. HRSZ or Contract No.">
                 </div>
             </div>
 
-            <!-- Tax Number (Hiányzott a HTML-ből) -->
             <div class="form-group">
                 <label>Tax Number</label>
                 <div class="input-wrapper">
@@ -56,7 +46,6 @@
                     <input type="text" name="tax_number" id="tax_number" class="form-control" value="{{ trust.tax_number if trust else '' }}" placeholder="e.g. 12345678-1-11">
                 </div>
             </div>
-
 
             <div class="form-group">
                 <label>Contract Date</label>
@@ -84,7 +73,6 @@
                 </div>
             </div>
 
-            <!-- Currency -->
             <div class="form-group">
                 <label>Reporting Currency</label>
                 <div class="select-wrapper">
@@ -99,12 +87,11 @@
                 </div>
             </div>
 
-            <!-- Gombok -->
             <div class="form-actions">
                 <button type="submit" class="btn-primary">
                     <i data-lucide="check" size="18"></i> Save Trust
                 </button>
-                <a href="{{ url_for('managed_trusts.managed_trusts') }}" class="btn-secondary">Cancel</a>
+                <a href="{{ cancel_url }}" class="btn-secondary">Cancel</a>
             </div>
 
         </form>

@@ -1,67 +1,52 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<style>
-    .account-table { 
-        width: 100%; 
-        border-collapse: collapse; 
-        text-align: left; 
-    }
-    .account-table th { 
-        position: sticky; 
-        top: 0; 
-        background-color: #f8fafc; 
-        color: var(--text-muted); 
-        font-weight: 600; 
-        z-index: 10;
-    }
-    .account-table th, .account-table td { 
-        padding: 16px 20px; 
-        border-bottom: 1px solid var(--border-color); 
-        font-size: 14px; 
-    }
-    .account-table tr:hover { 
-        background-color: #f1f5f9; 
-    }
-</style>
 
 <header class="header">
     <h1>Bank Accounts</h1>
     <a href="{{ url_for('bank_accounts.new_bank_account') }}" class="btn-primary">
         <i data-lucide="plus"></i> New Bank Account
     </a>
+    <div class="table-toolbar">
+        <input type="text" id="tableSearch" class="search-input" placeholder="🔍 Search...">
+    </div>
 </header>
 
 <main class="content-container">
-    <!-- card-full osztály kitölti a teljes rendelkezésre álló magasságot -->
     <div class="card-full">
         <div class="table-responsive">
-            <table class="account-table">
+            <table class="account-table" id="sortableTable">
                 <thead>
                     <tr>
-                        <th>Account Name</th>
-                        <th>Bank Name</th>
-                        <th>IBAN</th>
-                        <th>Asset Name</th>
-                        <th>Currency</th>
-                        <th>Status</th>
-                        <th style="width: 50px;"></th>
+                        <th data-sort>Account Name <span class="sort-icon">↕</span></th>
+                        <th data-sort>Bank <span class="sort-icon">↕</span></th>
+                        <th data-sort>IBAN <span class="sort-icon">↕</span></th>
+                        <th data-sort>PFJ <span class="sort-icon">↕</span></th>
+                        <th data-sort>Account Type <span class="sort-icon">↕</span></th>
+                        <th data-sort>Managed Trust <span class="sort-icon">↕</span></th>
+                        <th data-sort>Currency <span class="sort-icon">↕</span></th>
+                        <th data-sort>Opening Date <span class="sort-icon">↕</span></th>
+                        <th data-sort>Closing Date <span class="sort-icon">↕</span></th>
+                        <th data-sort>Status <span class="sort-icon">↕</span></th>
+                        <th class="action-col"></th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for acc in accounts %}
                     <tr>
-                        <td><strong>{{ acc.bank_account_name }}</strong></td>
+                        <td><strong>{{ acc.bank_account_name }}</strong>{% if acc.pending_changes %}<span class="badge badge-pending name-badge">Pending Change</span>{% endif %}</td>
                         <td>{{ acc.bank.bank_name if acc.bank else 'N/A' }}</td>
-                        <td>{{ acc.account_number_iban }}</td>
-                        <td>{{ acc.managed_asset.asset_name if acc.managed_asset else 'N/A' }}</td>
-                        <td>{{ acc.currency_ref.iso_code if acc.currency_ref else 'N/A' }}</td>
+                        <td>{{ acc.account_number_iban | iban if acc.account_number_iban else 'N/A' }}</td>
+                        <td>{{ acc.account_number_pfj | pfj if acc.account_number_pfj else 'N/A' }}</td>
+                        <td>{{ acc.type or 'N/A' }}</td>
+                        <td>{{ acc.trust.trust_name if acc.trust else 'N/A' }}</td>
+                        <td>{{ acc.currency.code if acc.currency else 'N/A' }}</td>
+                        <td>{{ acc.contract_date.strftime('%Y-%m-%d') if acc.contract_date else 'N/A' }}</td>
+                        <td>{{ acc.end_date.strftime('%Y-%m-%d') if acc.end_date else 'N/A' }}</td>
                         <td>
-                            {% if acc.status == 'Inactive' or not acc.active %}
-                                <span class="badge badge-inactive">Inactive</span>
-                            {% else %}
-                                <span class="badge badge-active">Active</span>
-                            {% endif %}
+                            <span class="badge {{ 'badge-active' if acc.status == 'Active' else 'badge-inactive' }}">
+                                {{ acc.status }}
+                            </span>
                         </td>
                         <td class="action-cell">
                             <button type="button" class="icon-btn" onclick="toggleDropdown(event)">
@@ -69,8 +54,8 @@
                             </button>
                             <div class="dropdown-menu">
                                 <a href="{{ url_for('bank_accounts.edit_bank_account', account_id=acc.account_id) }}" class="dropdown-item">Edit</a>
-                                <form action="{{ url_for('bank_accounts.delete_bank_account', account_id=acc.account_id) }}" method="POST" style="margin: 0;">
-                                    <button type="submit" class="dropdown-item delete" onclick="return confirm('Are you sure you want to delete this account?')">Delete</button>
+                                <form action="{{ url_for('bank_accounts.delete_bank_account', account_id=acc.account_id) }}" method="POST" class="delete-form">
+                                    <button type="submit" class="dropdown-item delete">Delete</button>
                                 </form>
                             </div>
                         </td>
@@ -80,5 +65,6 @@
             </table>
         </div>
     </div>
+
 </main>
 {% endblock %}

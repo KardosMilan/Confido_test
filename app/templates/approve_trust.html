@@ -1,10 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<style>
-    .form-grid { display: grid; grid-template-columns: 180px 1fr; gap: 16px; align-items: center; max-width: 600px; }
-    .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius); }
-</style>
+{% from '_macros.html' import change_notice, previous_value %}
 
 <header class="header">
     <h1>Approve Managed Trust</h1>
@@ -12,7 +9,8 @@
 
 <main class="content-container">
     <div class="form-card">
-       <form id="trust_form" action="{{ url_for('approvals.approve_trust', trust_id=trust.trust_id) }}" method="POST" class="form-single-column">  
+        {{ change_notice(original, 'trust') }}
+       <form id="trust_form" action="{{ url_for('approvals.approve_trust', trust_id=trust.trust_id) }}" method="POST" class="form-single-column confirm-form" data-confirm-text="Do you want to approve this trust?">
             <div class="form-group">
                 <label>Trust Name</label>
                 <div class="input-wrapper">
@@ -22,8 +20,8 @@
                     </svg>
                     <input type="text" name="trust_name" id="trust_name" class="form-control" value="{{ trust.trust_name if trust else '' }}" placeholder="e.g. Real Estate Portfolio Alpha" required disabled>
                 </div>
+                {{ previous_value(original, (original.trust_name if original else ''), trust.trust_name) }}
             </div>
-
 
             <div class="form-group">
                 <label>Contract Number</label>
@@ -36,6 +34,7 @@
                     </svg>
                     <input type="text" name="contract_number" id="contract_number" class="form-control" value="{{ trust.contract_number if trust else '' }}" placeholder="e.g. HRSZ or Contract No." disabled>
                 </div>
+                {{ previous_value(original, (original.contract_number if original else ''), trust.contract_number) }}
             </div>
 
             <div class="form-group">
@@ -49,8 +48,8 @@
                     </svg>
                     <input type="text" name="tax_number" id="tax_number" class="form-control" value="{{ trust.tax_number if trust else '' }}" placeholder="e.g. 12345678-1-11" disabled>
                 </div>
+                {{ previous_value(original, (original.tax_number if original else ''), trust.tax_number) }}
             </div>
-
 
             <div class="form-group">
                 <label>Contract Date</label>
@@ -63,6 +62,7 @@
                     </svg>
                     <input type="date" name="contract_date" id="contract_date" class="form-control" value="{{ trust.contract_date if trust else '' }}" disabled>
                 </div>
+                {{ previous_value(original, (original.contract_date if original else ''), trust.contract_date) }}
             </div>
 
             <div class="form-group">
@@ -76,8 +76,8 @@
                     </svg>
                     <input type="date" name="end_date" id="end_date" class="form-control" value="{{ trust.end_date if trust else '' }}" disabled>
                 </div>
+                {{ previous_value(original, (original.end_date if original else ''), trust.end_date) }}
             </div>
-
 
             <div class="form-group">
                 <label>Reporting Currency</label>
@@ -91,14 +91,14 @@
                         {% endfor %}
                     </select>
                 </div>
+                {{ previous_value(original, (original.currency.code if original and original.currency else ''), (trust.currency.code if trust.currency else '')) }}
             </div>
 
-            <!-- Gombok -->
             <div class="form-actions">
                 <button type="submit" class="btn-primary">
                     <i data-lucide="check" size="18"></i> Approve
                 </button>
-                <a href="{{ url_for('managed_trusts.edit_managed_trusts', trust_id=trust.trust_id) }}" class="btn-secondary">
+                <a href="{{ url_for('managed_trusts.edit_managed_trusts_pending', trust_id=trust.trust_id) }}" class="btn-secondary">
                     <i data-lucide="pen" size="18"></i> Edit
                 </a>
             </div>
@@ -106,41 +106,5 @@
         </form>
     </div>
 
-<!-- FLASH ÜZENETEK KEZELÉSE SWEETALERT2-VEL -->
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        // A Jinja2 üzeneteket átalakítjuk tiszta JavaScript tömbbé
-        const flashMessages = {{ messages | tojson }};
-        
-        flashMessages.forEach(function(item) {
-          const category = item[0];
-          const message = item[1];
-          
-          let iconType = 'info';
-          let titleText = 'Message';
-
-          if (category === 'danger' || category === 'error') {
-            iconType = 'error';
-            titleText = 'Warning';
-          } else if (category === 'success') {
-            iconType = 'success';
-            titleText = 'Success';
-          }
-
-          Swal.fire({
-            icon: iconType,
-            title: titleText,
-            text: message,
-            confirmButtonColor: '#2563eb',
-            scrollbarPadding: false,
-            heightAuto: false
-            });
-        });
-      });
-    </script>
-  {% endif %}
-{% endwith %}
 </main>
 {% endblock %}
