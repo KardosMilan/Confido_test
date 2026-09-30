@@ -13,7 +13,6 @@ users_bp = Blueprint('users', __name__)
 @login_required
 def list_users():
     users = User.query.all()
-    print("Adatbázisból beolvasott userek:", users)
     return render_template('users.html', users=users, active_page='settings')
 
 @users_bp.route('/users/<int:user_id>/update-role', methods=['POST'])
@@ -21,7 +20,7 @@ def list_users():
 def update_role(user_id):
     # Csak Admin módosíthat Role-t
     if current_user.role != 'Admin':
-        return jsonify({'error': 'Nincs jogosultságod!'}), 403
+        return jsonify({'error': 'No access!'}), 403
     
     user = User.query.get_or_404(user_id)
     new_role = request.form.get('role')

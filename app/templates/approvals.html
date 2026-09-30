@@ -141,8 +141,8 @@
                             <td>{{ trust.contract_number or 'N/A' }}</td>
                             <td>{{ trust.tax_number or 'N/A' }}</td>
                             <td>{{ trust.contract_date.strftime('%Y-%m-%d') if trust.contract_date else 'N/A' }}</td>
-                            <td>{{ trust.end_date.strftime('%Y-%m-%d') if trust.end_date else 'N/A' }}</td>
-                            <td>{{ trust.currency.code if trust.currency.id else 'N/A' }}</td>
+                            <td>{{ trust.end_date.strftime('%Y-%m-%d') if trust.end_date else '-' }}</td>
+                            <td>{{ trust.currency.code if trust.currency else 'N/A' }}</td>
                             <td>
                                 <span class="badge {{ 'badge-active' if trust.status == 'Active' else 'badge-inactive' }}">
                                     {{ trust.status }}
@@ -179,11 +179,15 @@
                     <thead>
                         <tr>
                             <th>Account Name</th>
-                            <th>Account Number / IBAN</th>
-                            <th>Bank Name</th>
-                            <th>Currency</th>
+                            <th>IBAN</th>
+                            <th>PFJ</th>
+                            <th>Account Type</th>
+                            <th>Bank</th>
+                            <th>Managed Trust</th>
+                            <th>Opening Date</th>
+                            <th>Close Date</th>
+                            <th>Riporting Currency</th>
                             <th>Status</th>
-                            <th>State</th>
                             <th>Creator</th>
                             <th style="width: 50px;"></th>
                         </tr>
@@ -191,28 +195,28 @@
                     <tbody>
                         {% for account in accounts %}
                         <tr>
-                            <td><strong>{{ account.account_name }}</strong></td>
-                            <td>{{ account.account_number or account.iban or 'N/A' }}</td>
-                            <td>{{ account.bank_name or 'N/A' }}</td>
+                            <td><strong>{{ account.bank_account_name }}</strong></td>
+                            <td>{{ account.account_number_iban or 'N/A' }}</td>
+                            <td>{{ account.account_number_pfj or 'N/A' }}</td>
+                            <td>{{ account.type or 'N/A' }}</td>
+                            <td>{{ account.bank_account_name or 'N/A' }}</td>
+                            <td>{{ account.trust_id or 'N/A' }}</td>
+                            <td>{{ account.contract_date.strftime('%Y-%m-%d') if account.contract_date else 'N/A' }}</td>
+                            <td>{{ account.end_date.strftime('%Y-%m-%d') if account.end_date else '-' }}</td>
                             <td>{{ account.currency.code if account.currency else 'N/A' }}</td>
                             <td>
                                 <span class="badge {{ 'badge-active' if account.status == 'Active' else 'badge-inactive' }}">
                                     {{ account.status }}
                                 </span>
                             </td>
-                            <td>
-                                <span class="badge {{ 'badge-active' if account.state == 'Approved' else 'badge-inactive' }}">
-                                    {{ account.state }}
-                                </span>
-                            </td>
-                            <td>{{ account.creator.name if account.creator else 'N/A' }}</td>
+                            <td>{{ account.inspector_1_user.name if account.inspector_1_user else 'N/A' }}</td>
                             <td class="action-cell">
                                 <button type="button" class="icon-btn" onclick="toggleDropdown(event)">
                                     <i data-lucide="more-vertical"></i>
                                 </button>
                                 <div class="dropdown-menu">
                                     <a href="{{ url_for('approvals.approve_account', account_id=account.account_id) }}" class="dropdown-item">Approve</a>
-                                    <form action="{{ url_for('accounts.delete_account_pending', account_id=account.account_id) }}" method="POST" style="margin: 0;">
+                                    <form action="{{ url_for('bank_accounts.delete_account_pending', account_id=account.account_id) }}" method="POST" style="margin: 0;">
                                         <button type="submit" class="dropdown-item delete" onclick="return confirm('Are you sure you want to delete this account?')">Decline</button>
                                     </form>
                                 </div>

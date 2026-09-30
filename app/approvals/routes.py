@@ -51,9 +51,9 @@ def approve_trust(trust_id):
         flash('No permission granted!', 'danger')
         return redirect(url_for('approvals.approvals'))
 
-    if (current_user.id == pending_trust.inspector_1) or (current_user.role!="Admin"):
-            flash('You can not approve your own trust!', 'danger')
-            return redirect(url_for('approvals.approvals'))
+    if (current_user.role != 'Admin') and (current_user.id == pending_trust.inspector_1):
+        flash('You can not approve your own trust!', 'danger')
+        return redirect(url_for('approvals.approvals'))
 
     if request.method == 'POST':
         approved_trust = ManagedTrusts(

@@ -77,10 +77,12 @@ def create_app(config_class=Config):
     from app.auth.routes import auth_bp
     from app.banks.routes import banks_bp
     from app.users.routes import users_bp
+    from app.managed_assets.routes import managed_assets_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(bank_accounts_bp)
     app.register_blueprint(managed_trusts_bp)
+    app.register_blueprint(managed_assets_bp)
     app.register_blueprint(approvals_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(banks_bp)

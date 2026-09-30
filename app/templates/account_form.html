@@ -67,14 +67,14 @@
                 </div>
             </div>
 
-            <!-- Managed Asset -->
+            <!-- Managed account -->
             <div class="form-group">
-                <label for="asset_id">Managed Asset</label>
+                <label for="trust_id">Managed Trust</label>
                 <div class="select-wrapper">
-                    <select id="asset_id" name="asset_id" class="form-control" required>
-                        <option value="" disabled {{ 'selected' if not account }}>Select Managed Asset...</option>
-                        {% for a in assets %}
-                            <option value="{{ a.asset_id }}" {% if account and account.asset_id == a.asset_id %}selected{% endif %}>{{ a.asset_name }}</option>
+                    <select id="trust_id" name="trust_id" class="form-control" required>
+                        <option value="" disabled {{ 'selected' if not account }}>Select Managed Trust...</option>
+                        {% for a in trusts %}
+                            <option value="{{ a.trust_id }}" {% if account and account.trust_id == a.trust_id %}selected{% endif %}>{{ a.trust_name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -87,22 +87,39 @@
                     <select id="currency" name="currency" class="form-control" required>
                         <option value="" disabled {{ 'selected' if not account }}>Select Currency...</option>
                         {% for c in currencies %}
-                            <option value="{{ c.currency_id }}" {% if account and account.currency == c.currency_id %}selected{% endif %}>{{ c.code }} - {{ c.name }}</option>
+                            <option value="{{ c.id }}" {% if account and account.currency == c.id %}selected{% endif %}>{{ c.code }} - {{ c.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
             </div>
 
-            <!-- Status -->
             <div class="form-group">
-                <label for="status">Status</label>
-                <div class="select-wrapper">
-                    <select id="status" name="status" class="form-control">
-                        <option value="Active" {% if not account or account.status == 'Active' %}selected{% endif %}>Active</option>
-                        <option value="Inactive" {% if account and account.status == 'Inactive' %}selected{% endif %}>Inactive</option>
-                    </select>
+                <label>Opening Date</label>
+                <div class="input-wrapper">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <input type="date" name="contract_date" id="contract_date" class="form-control" value="{{ account.contract_date if account else '' }}" required>
                 </div>
             </div>
+
+            <div class="form-group">
+                <label>Closing Date</label>
+                <div class="input-wrapper">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" required>
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <input type="date" name="end_date" id="end_date" class="form-control" value="{{ account.end_date if account else '' }}">
+                </div>
+            </div>
+
+           
 
             <!-- Form Actions -->
             <div class="form-actions">

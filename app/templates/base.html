@@ -35,15 +35,21 @@
                 </a>
             </li>
             <li class="menu-item">
-                <a href="{{ url_for('banks.banks') }}" class="menu-link {% if active_page == 'banks' %}active{% endif %}">
-                    <i data-lucide="building"></i>
-                    <span>Banks</span>
-                </a>
-            </li>
-            <li class="menu-item">
                 <a href="{{ url_for('bank_accounts.bank_accounts') }}" class="menu-link {% if active_page == 'bank_accounts' %}active{% endif %}">
                     <i data-lucide="landmark"></i>
                     <span>Bank Accounts</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="{{ url_for('managed_assets.managed_assets') }}" class="menu-link {% if active_page == 'managed_assets' %}active{% endif %}">
+                    <i data-lucide="banknote"></i>
+                    <span>Managed Assets</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="{{ url_for('banks.banks') }}" class="menu-link {% if active_page == 'banks' %}active{% endif %}">
+                    <i data-lucide="building"></i>
+                    <span>Banks</span>
                 </a>
             </li>
             <li class="menu-item">

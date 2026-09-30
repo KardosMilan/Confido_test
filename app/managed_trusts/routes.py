@@ -27,12 +27,15 @@ def new_managed_trust():
 
         end_date_str = request.form.get('end_date')
 
-        # Státusz kiszámítása
         status = 'Inactive'
-        if end_date_str:
-            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-            if end_date >= date.today():
-                status = 'Active'
+
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date() if end_date_str else None
+        if end_date == None:
+            status = 'Active'
+        elif (end_date >= date.today()):
+            status = 'Active'
+
+
 
         new_trust = ManagedTrustsPending(
             trust_name=request.form.get('trust_name'),

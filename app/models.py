@@ -32,9 +32,6 @@ class Currency(db.Model):
     symbol = db.Column(db.String(10), nullable=False)            
     decimals = db.Column(db.Integer, nullable=False, default=2)
 
-    managed_trusts = db.relationship('ManagedTrusts', backref='currency_ref', lazy=True)
-    bank_accounts = db.relationship('BankAccount', backref='currency_ref', lazy=True)
-
 def seed_currencies():
     if Currency.query.first() is None:
         currencies_data = [
@@ -424,22 +421,6 @@ def seed_banks():
 
 # --- FŐ TÁBLÁK ---
 
-class BankAccount(db.Model):
-    __tablename__ = 'bank_account'
-    account_id = db.Column('Account ID', db.Integer, primary_key=True)
-    trust_id = db.Column('Trust ID', db.Integer, db.ForeignKey('managed_trusts.Trust ID'))
-    bank_id = db.Column('Bank ID', db.Integer, db.ForeignKey('bank.BANK ID'))
-    currency = db.Column('Currency', db.Integer, db.ForeignKey('currency.id'))
-    type = db.Column('Type', db.String(50))
-    account_number_iban = db.Column('Account number (IBAN)', db.String(34))
-    account_number_pfj = db.Column('Account number (PFJ)', db.String(50))
-    bank_account_name = db.Column('Bank account name', db.String(100))
-    active = db.Column('Active', db.Boolean, default=False)
-    status = db.Column('Status', db.String(50))
-    inspector_1 = db.Column('Inspector 1', db.String(100))
-    inspector_2 = db.Column('Inspector 2', db.String(100))
-    approval_time = db.Column('ApprovalTime', db.DateTime, default=datetime.utcnow)
-    balances = db.relationship('BankAccountBalance', backref='bank_account', lazy=True)
 
 class BankAccountBalance(db.Model):
     __tablename__ = 'bank_account_balance'
@@ -454,22 +435,32 @@ class BankAccountPendingBalance(db.Model):
     balance = db.Column('Balance', db.Numeric(15, 2))
 
 # --- STAGING TÁBLÁK ---
-class BankAccountPending(db.Model):
-    __tablename__ = 'bank_account_pending'
+class BankAccount(db.Model):
+    __tablename__ = 'bank_account'
     account_id = db.Column('Account ID', db.Integer, primary_key=True)
-    trust_id = db.Column('Trust ID', db.Integer, db.ForeignKey('managed_trusts_pending.Trust ID'))
-    bank_id = db.Column('Bank ID', db.Integer, db.ForeignKey('bank.BANK ID'))
-    currency = db.Column('Currency', db.Integer, db.ForeignKey('currency.id'))
+    trust_id = db.Column('Trust ID', db.Integer, db.ForeignKey('managed_trusts.Trust ID'), nullable=True)
+    bank_id = db.Column('Bank ID', db.Integer, db.ForeignKey('bank.BANK ID'), nullable=True)
+    currency_id = db.Column('Currency', db.Integer, db.ForeignKey('currency.id'), nullable=True)
     type = db.Column('Type', db.String(50))
     account_number_iban = db.Column('Account number (IBAN)', db.String(34))
     account_number_pfj = db.Column('Account number (PFJ)', db.String(50))
     bank_account_name = db.Column('Bank account name', db.String(100))
-    active = db.Column('Active', db.Boolean, default=False)
+    contract_date = db.Column('Contract Date', db.Date)
+    end_date = db.Column('End of Management Date', db.Date)
     status = db.Column('Status', db.String(50))
-    inspector_1 = db.Column('Inspector 1', db.Integer)
-    inspector_2 = db.Column('Inspector 2', db.Integer)
+    state = db.Column('State', db.String(50))
+    inspector_1 = db.Column('Inspector 1', db.Integer, db.ForeignKey('users.id'), nullable=True)
+    inspector_2 = db.Column('Inspector 2', db.Integer, db.ForeignKey('users.id'), nullable=True)
     approval_time = db.Column('ApprovalTime', db.DateTime, default=datetime.utcnow)
-    balances = db.relationship('BankAccountPendingBalance', backref='bank_account_pending', lazy=True)
+    
+
+    # Kapcsolatok
+    currency = db.relationship('Currency', foreign_keys=[currency_id])
+    inspector_1_user = db.relationship('User', foreign_keys=[inspector_1])
+    inspector_2_user = db.relationship('User', foreign_keys=[inspector_2])
+    balances = db.relationship('BankAccountBalance', backref='bank_account', lazy=True)
+    trust = db.relationship('ManagedTrusts', foreign_keys=[trust_id])
+
 
 class ManagedTrusts(db.Model):
     __tablename__ = 'managed_trusts'
@@ -478,15 +469,49 @@ class ManagedTrusts(db.Model):
     contract_number = db.Column('Contract number', db.String(50))
     tax_number = db.Column('Tax number', db.String(50))
     contract_date = db.Column('Contract Date', db.Date)
-    end_date = db.Column('End of Management Date', db.Date)
-    riporting_currency = db.Column('Riporting currency', db.Integer, db.ForeignKey('currency.id'))
+    end_date = db.Column('End of Management Date', db.Date, nullable=True)
+    riporting_currency = db.Column('Riporting currency', db.Integer, db.ForeignKey('currency.id'), nullable=True)
     status = db.Column('Status', db.String(50))
     state = db.Column('State', db.String(50))
-    inspector_1 = db.Column('Inspector 1', db.Integer)
-    inspector_2 = db.Column('Inspector 2', db.Integer)
+    inspector_1 = db.Column('Inspector 1', db.Integer, db.ForeignKey('users.id'), nullable=True)
+    inspector_2 = db.Column('Inspector 2', db.Integer, db.ForeignKey('users.id'), nullable=True)
     approval_time = db.Column('ApprovalTime', db.DateTime, default=datetime.utcnow)
-    bank_accounts = db.relationship('BankAccount', backref='managed_trusts', lazy=True)
+
+    # Kapcsolatok
+    bank_accounts = db.relationship('BankAccount', backref='managed_trust', lazy=True)
     currency = db.relationship('Currency', foreign_keys=[riporting_currency])
+    inspector_1_user = db.relationship('User', foreign_keys=[inspector_1])
+    inspector_2_user = db.relationship('User', foreign_keys=[inspector_2])
+
+
+# --- STAGING / PENDING TÁBLÁK ---
+
+class BankAccountPending(db.Model):
+    __tablename__ = 'bank_account_pending'
+    account_id = db.Column('Account ID', db.Integer, primary_key=True)
+    # PENDING TRUST-RA MUTATÓ KÜLSŐ KULCS (Ez javítja a NoForeignKeysError-t):
+    trust_id = db.Column('Trust ID', db.Integer, db.ForeignKey('managed_trusts.Trust ID'), nullable=True)
+    bank_id = db.Column('Bank ID', db.Integer, db.ForeignKey('bank.BANK ID'), nullable=True)
+    currency_id = db.Column('Currency', db.Integer, db.ForeignKey('currency.id'), nullable=True)
+    type = db.Column('Type', db.String(50))
+    account_number_iban = db.Column('Account number (IBAN)', db.String(34))
+    account_number_pfj = db.Column('Account number (PFJ)', db.String(50))
+    bank_account_name = db.Column('Bank account name', db.String(100))
+    contract_date = db.Column('Contract Date', db.Date)
+    end_date = db.Column('End of Management Date', db.Date)
+    status = db.Column('Status', db.String(50))
+    state = db.Column('State', db.String(50))
+    inspector_1 = db.Column('Inspector 1', db.Integer, db.ForeignKey('users.id'), nullable=True)
+    inspector_2 = db.Column('Inspector 2', db.Integer, db.ForeignKey('users.id'), nullable=True)
+    approval_time = db.Column('ApprovalTime', db.DateTime, default=datetime.utcnow)
+    
+
+    # Kapcsolatok
+    currency = db.relationship('Currency', foreign_keys=[currency_id])
+    inspector_1_user = db.relationship('User', foreign_keys=[inspector_1])
+    balances = db.relationship('BankAccountPendingBalance', backref='bank_account_pending', lazy=True)
+    trust = db.relationship('ManagedTrusts', foreign_keys=[trust_id])
+
 
 class ManagedTrustsPending(db.Model):
     __tablename__ = 'managed_trusts_pending'
@@ -495,13 +520,49 @@ class ManagedTrustsPending(db.Model):
     contract_number = db.Column('Contract number', db.String(50))
     tax_number = db.Column('Tax number', db.String(50))
     contract_date = db.Column('Contract Date', db.Date)
-    end_date = db.Column('End of Management Date', db.Date)
-    riporting_currency = db.Column('Riporting currency', db.Integer, db.ForeignKey('currency.id'))
+    end_date = db.Column('End of Management Date', db.Date, nullable=True)
+    riporting_currency = db.Column('Riporting currency', db.Integer, db.ForeignKey('currency.id'), nullable=True)
     status = db.Column('Status', db.String(50))
     state = db.Column('State', db.String(50))
-    inspector_1 = db.Column('Inspector 1',db.Integer, db.ForeignKey('users.id'))
-    inspector_2 = db.Column('Inspector 2', db.Integer)
+    inspector_1 = db.Column('Inspector 1', db.Integer, db.ForeignKey('users.id'), nullable=True)
+    inspector_2 = db.Column('Inspector 2', db.Integer, db.ForeignKey('users.id'), nullable=True)
     approval_time = db.Column('ApprovalTime', db.DateTime, default=datetime.utcnow)
-    bank_accounts = db.relationship('BankAccountPending', backref='managed_trusts_pending', lazy=True)
+
+    # Kapcsolatok
     currency = db.relationship('Currency', foreign_keys=[riporting_currency])
-    inspector_1_user = db.relationship('User', foreign_keys=[inspector_1], backref='managed_trusts')
+    inspector_1_user = db.relationship('User', foreign_keys=[inspector_1])
+    inspector_2_user = db.relationship('User', foreign_keys=[inspector_2])
+
+
+class ManagedAssets(db.Model):
+    __tablename__ = 'managed_assets'
+    asset_id = db.Column('asset ID', db.Integer, primary_key=True)
+    asset_name = db.Column('asset Name', db.String(100))
+    contract_number = db.Column('Contract number', db.String(50))
+    tax_number = db.Column('Tax number', db.String(50))
+    contract_date = db.Column('Contract Date', db.Date)
+    end_date = db.Column('End of Management Date', db.Date)
+    riporting_currency = db.Column('Riporting currency', db.Integer, db.ForeignKey('currency.id'), nullable=True)
+    status = db.Column('Status', db.String(50))
+    state = db.Column('State', db.String(50))
+    inspector_1 = db.Column('Inspector 1', db.Integer, db.ForeignKey('users.id'), nullable=True)
+    inspector_2 = db.Column('Inspector 2', db.Integer, db.ForeignKey('users.id'), nullable=True)
+    approval_time = db.Column('ApprovalTime', db.DateTime, default=datetime.utcnow)
+
+
+
+class ManagedAssetsPending(db.Model):
+    __tablename__ = 'managed_assets_pending'
+    asset_id = db.Column('asset ID', db.Integer, primary_key=True)
+    asset_name = db.Column('asset Name', db.String(100))
+    contract_number = db.Column('Contract number', db.String(50))
+    tax_number = db.Column('Tax number', db.String(50))
+    contract_date = db.Column('Contract Date', db.Date)
+    end_date = db.Column('End of Management Date', db.Date)
+    riporting_currency = db.Column('Riporting currency', db.Integer, db.ForeignKey('currency.id'), nullable=True)
+    status = db.Column('Status', db.String(50))
+    state = db.Column('State', db.String(50))
+    inspector_1 = db.Column('Inspector 1', db.Integer, db.ForeignKey('users.id'), nullable=True)
+    inspector_2 = db.Column('Inspector 2', db.Integer, db.ForeignKey('users.id'), nullable=True)
+    approval_time = db.Column('ApprovalTime', db.DateTime, default=datetime.utcnow)
+
