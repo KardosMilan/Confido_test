@@ -1,146 +1,84 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<style>
-    .form-grid { display: grid; grid-template-columns: 180px 1fr; gap: 16px; align-items: center; max-width: 600px; }
-    .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius); }
-</style>
-
+{% from '_macros.html' import change_notice, previous_value %}
 <header class="header">
-    <h1>Approve Managed Trust</h1>
+    <h1>Approve Managed Asset</h1>
 </header>
 
 <main class="content-container">
     <div class="form-card">
-       <form id="trust_form" action="{{ url_for('approvals.approve_trust', trust_id=trust.trust_id) }}" method="POST" class="form-single-column">  
+        {{ change_notice(original, 'asset') }}
+        <form action="{{ url_for('approvals.approve_asset', asset_id=asset.asset_id) }}" method="POST" class="form-single-column confirm-form" data-confirm-text="Do you want to approve this asset?">
             <div class="form-group">
-                <label>Trust Name</label>
+                <label>Asset Type</label>
                 <div class="input-wrapper">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                    </svg>
-                    <input type="text" name="trust_name" id="trust_name" class="form-control" value="{{ trust.trust_name if trust else '' }}" placeholder="e.g. Real Estate Portfolio Alpha" required disabled>
+                    <i data-lucide="layers"></i>
+                    <input type="text" class="form-control" value="{{ asset.asset_type or '' }}" disabled>
                 </div>
+                {{ previous_value(original, (original.asset_type if original else ''), asset.asset_type) }}
             </div>
 
-
             <div class="form-group">
-                <label>Contract Number</label>
+                <label>Asset Name</label>
                 <div class="input-wrapper">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="4" y1="9" x2="20" y2="9"></line>
-                        <line x1="4" y1="15" x2="20" y2="15"></line>
-                        <line x1="10" y1="3" x2="8" y2="21"></line>
-                        <line x1="16" y1="3" x2="14" y2="21"></line>
-                    </svg>
-                    <input type="text" name="contract_number" id="contract_number" class="form-control" value="{{ trust.contract_number if trust else '' }}" placeholder="e.g. HRSZ or Contract No." disabled>
+                    <i data-lucide="tag"></i>
+                    <input type="text" class="form-control" value="{{ asset.asset_name or '' }}" disabled>
                 </div>
+                {{ previous_value(original, (original.asset_name if original else ''), asset.asset_name) }}
             </div>
 
             <div class="form-group">
-                <label>Tax Number</label>
+                <label>Currency</label>
                 <div class="input-wrapper">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="4" y1="9" x2="20" y2="9"></line>
-                        <line x1="4" y1="15" x2="20" y2="15"></line>
-                        <line x1="10" y1="3" x2="8" y2="21"></line>
-                        <line x1="16" y1="3" x2="14" y2="21"></line>
-                    </svg>
-                    <input type="text" name="tax_number" id="tax_number" class="form-control" value="{{ trust.tax_number if trust else '' }}" placeholder="e.g. 12345678-1-11" disabled>
+                    <i data-lucide="coins"></i>
+                    <input type="text" class="form-control" value="{{ asset.currency.code ~ ' - ' ~ asset.currency.name if asset.currency else '' }}" disabled>
                 </div>
+                {{ previous_value(original, (original.currency.code if original and original.currency else ''), (asset.currency.code if asset.currency else '')) }}
             </div>
 
-
+            {% if 'isin' in asset_fields %}
             <div class="form-group">
-                <label>Contract Date</label>
+                <label>ISIN</label>
                 <div class="input-wrapper">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                    <input type="date" name="contract_date" id="contract_date" class="form-control" value="{{ trust.contract_date if trust else '' }}" disabled>
+                    <i data-lucide="barcode"></i>
+                    <input type="text" class="form-control" value="{{ asset.isin | isin }}" disabled>
                 </div>
+                {{ previous_value(original, (original.isin | isin if original and original.isin else ''), (asset.isin | isin if asset.isin else '')) }}
             </div>
+            {% endif %}
 
+            {% if 'nominal_value' in asset_fields %}
             <div class="form-group">
-                <label>End of Management Date</label>
+                <label>Nominal Value</label>
                 <div class="input-wrapper">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                    <input type="date" name="end_date" id="end_date" class="form-control" value="{{ trust.end_date if trust else '' }}" disabled>
+                    <i data-lucide="banknote"></i>
+                    <input type="text" class="form-control" value="{{ asset.nominal_value | amount }}" disabled>
                 </div>
+                {{ previous_value(original, (original.nominal_value | amount if original and original.nominal_value is not none else ''), (asset.nominal_value | amount if asset.nominal_value is not none else '')) }}
             </div>
+            {% endif %}
 
-
+            {% if 'price_decimals' in asset_fields %}
             <div class="form-group">
-                <label>Reporting Currency</label>
-                <div class="select-wrapper">
-                    <select id="riporting_currency" name="riporting_currency" class="form-control" required disabled>
-                        <option value="" disabled {{ 'selected' if not trust }}>Select Currency...</option>
-                        {% for c in currencies %}
-                            <option value="{{ c.id }}" {% if trust and trust.currency.id == c.id %}selected{% endif %}>
-                                {{ c.code }} - {{ c.name }}
-                            </option>
-                        {% endfor %}
-                    </select>
+                <label>Price Quotation Decimals</label>
+                <div class="input-wrapper">
+                    <i data-lucide="hash"></i>
+                    <input type="text" class="form-control" value="{{ asset.price_decimals }}" disabled>
                 </div>
+                {{ previous_value(original, (original.price_decimals if original and original.price_decimals is not none else ''), (asset.price_decimals if asset.price_decimals is not none else '')) }}
             </div>
+            {% endif %}
 
-            <!-- Gombok -->
             <div class="form-actions">
                 <button type="submit" class="btn-primary">
                     <i data-lucide="check" size="18"></i> Approve
                 </button>
-                <a href="{{ url_for('managed_trusts.edit_managed_trusts', trust_id=trust.trust_id) }}" class="btn-secondary">
+                <a href="{{ url_for('managed_assets.edit_managed_assets_pending', asset_id=asset.asset_id) }}" class="btn-secondary">
                     <i data-lucide="pen" size="18"></i> Edit
                 </a>
             </div>
-
         </form>
     </div>
-
-<!-- FLASH ÜZENETEK KEZELÉSE SWEETALERT2-VEL -->
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        // A Jinja2 üzeneteket átalakítjuk tiszta JavaScript tömbbé
-        const flashMessages = {{ messages | tojson }};
-        
-        flashMessages.forEach(function(item) {
-          const category = item[0];
-          const message = item[1];
-          
-          let iconType = 'info';
-          let titleText = 'Message';
-
-          if (category === 'danger' || category === 'error') {
-            iconType = 'error';
-            titleText = 'Warning';
-          } else if (category === 'success') {
-            iconType = 'success';
-            titleText = 'Success';
-          }
-
-          Swal.fire({
-            icon: iconType,
-            title: titleText,
-            text: message,
-            confirmButtonColor: '#2563eb',
-            scrollbarPadding: false,
-            heightAuto: false
-            });
-        });
-      });
-    </script>
-  {% endif %}
-{% endwith %}
 </main>
 {% endblock %}

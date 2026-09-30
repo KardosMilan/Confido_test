@@ -5,11 +5,10 @@
     <h1>{% if bank %}Edit Bank{% else %}New Bank{% endif %}</h1>
 </header>
 
-<main class="content-container" style="display: flex; justify-content: center; align-items: flex-start;">
+<main class="content-container">
     <div class="form-card">
         <form id="bank_form" action="{% if bank %}{{ url_for('banks.edit_bank', id=bank.id) }}{% else %}{{ url_for('banks.new_bank') }}{% endif %}" method="POST" class="form-single-column">
 
-            <!-- Bank Name -->
             <div class="form-group">
                 <label>Bank Name</label>
                 <div class="input-wrapper">
@@ -17,7 +16,6 @@
                 </div>
             </div>
 
-            <!-- Region -->
             <div class="form-group">
                 <label>Region</label>
                 <div class="select-wrapper">
@@ -31,7 +29,6 @@
                 </div>
             </div>
 
-            <!-- Gombok -->
             <div class="form-actions">
                 <button type="submit" class="btn-primary">Save Bank</button>
                 <a href="{{ url_for('banks.banks') }}" class="btn-secondary">Cancel</a>

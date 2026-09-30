@@ -1,53 +1,107 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<style>
-    .form-grid { display: grid; grid-template-columns: 180px 1fr; gap: 16px; align-items: center; max-width: 600px; }
-    .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius); }
-</style>
+{% from '_macros.html' import change_notice, previous_value %}
 
 <header class="header">
-    <h1>View Bank Account</h1>
+    <h1>Approve Bank Account</h1>
 </header>
 
 <main class="content-container">
-    <div class="card" style="padding: 24px; max-width: 700px;">
-        <form class="form-grid" method="POST">
+    <div class="form-card">
+        {{ change_notice(original, 'bank account') }}
+        <form action="{{ url_for('approvals.approve_account', account_id=account.account_id) }}" method="POST" class="form-single-column confirm-form" data-confirm-text="Do you want to approve this bank account?">
+            <div class="form-group">
+                <label>Bank Account Name</label>
+                <div class="input-wrapper">
+                    <i data-lucide="building-2"></i>
+                    <input type="text" class="form-control" value="{{ account.bank_account_name or '' }}" disabled>
+                </div>
+                {{ previous_value(original, (original.bank_account_name if original else ''), account.bank_account_name) }}
+            </div>
 
-            <label>Bank Account Name</label>
-            <input type="text" class="form-control" value="{{ account.name if account else '' }}" disabled>
+            <div class="form-group">
+                <label>Account Number (IBAN)</label>
+                <div class="input-wrapper">
+                    <i data-lucide="credit-card"></i>
+                    <input type="text" class="form-control" value="{{ account.account_number_iban | iban if account.account_number_iban else '' }}" disabled>
+                </div>
+                {{ previous_value(original, (original.account_number_iban | iban if original and original.account_number_iban else ''), (account.account_number_iban | iban if account.account_number_iban else '')) }}
+            </div>
 
-            <label>Bank Name</label>
-            <select class="form-control" disabled>
-                <option {% if account and account.bank == 'OTP Bank' %}selected{% endif %}>OTP Bank</option>
-                <option {% if account and account.bank == 'Erste Bank' %}selected{% endif %}>Erste Bank</option>
-            </select>
+            <div class="form-group">
+                <label>Account Number (PFJ)</label>
+                <div class="input-wrapper">
+                    <i data-lucide="hash"></i>
+                    <input type="text" class="form-control" value="{{ account.account_number_pfj | pfj if account.account_number_pfj else '' }}" disabled>
+                </div>
+                {{ previous_value(original, (original.account_number_pfj | pfj if original and original.account_number_pfj else ''), (account.account_number_pfj | pfj if account.account_number_pfj else '')) }}
+            </div>
 
-            <label>Account Number (IBAN)</label>
-            <input type="text" class="form-control" value="{{ account.iban if account else '' }}" disabled>
+            <div class="form-group">
+                <label>Account Type</label>
+                <div class="input-wrapper">
+                    <i data-lucide="layers"></i>
+                    <input type="text" class="form-control" value="{{ account.type or '' }}" disabled>
+                </div>
+                {{ previous_value(original, (original.type if original else ''), account.type) }}
+            </div>
 
-            <label>Currency</label>
-            <select class="form-control" disabled>
-                <option {% if account and account.currency == 'HUF' %}selected{% endif %}>HUF</option>
-                <option {% if account and account.currency == 'EUR' %}selected{% endif %}>EUR</option>
-            </select>
+            <div class="form-group">
+                <label>Bank Institution</label>
+                <div class="input-wrapper">
+                    <i data-lucide="landmark"></i>
+                    <input type="text" class="form-control" value="{{ account.bank.bank_name if account.bank else '' }}" disabled>
+                </div>
+                {{ previous_value(original, (original.bank.bank_name if original and original.bank else ''), (account.bank.bank_name if account.bank else '')) }}
+            </div>
 
-            <label>Status</label>
-            <select class="form-control" disabled>
-                <option {% if account and account.status == 'Active' %}selected{% endif %}>Active</option>
-                <option {% if account and account.status == 'Inactive' %}selected{% endif %}>Inactive</option>
-            </select>
+            <div class="form-group">
+                <label>Managed Trust</label>
+                <div class="input-wrapper">
+                    <i data-lucide="briefcase"></i>
+                    <input type="text" class="form-control" value="{{ account.trust.trust_name if account.trust else '' }}" disabled>
+                </div>
+                {{ previous_value(original, (original.trust.trust_name if original and original.trust else ''), (account.trust.trust_name if account.trust else '')) }}
+            </div>
 
-            <div></div>
-            <div style="margin-top: 12px; display: flex; gap: 12px;">
-                <button type="submit" class="btn-primary" href="{{ url_for('approvals.approvals') }}">
-                    <i data-lucide="circle-check"></i> Accept
+            <div class="form-group">
+                <label>Currency</label>
+                <div class="input-wrapper">
+                    <i data-lucide="coins"></i>
+                    <input type="text" class="form-control" value="{{ account.currency.code ~ ' - ' ~ account.currency.name if account.currency else '' }}" disabled>
+                </div>
+                {{ previous_value(original, (original.currency.code if original and original.currency else ''), (account.currency.code if account.currency else '')) }}
+            </div>
+
+            <div class="form-group">
+                <label>Opening Date</label>
+                <div class="input-wrapper">
+                    <i data-lucide="calendar"></i>
+                    <input type="date" class="form-control" value="{{ account.contract_date or '' }}" disabled>
+                </div>
+                {{ previous_value(original, (original.contract_date if original else ''), account.contract_date) }}
+            </div>
+
+            <div class="form-group">
+                <label>Closing Date</label>
+                <div class="input-wrapper">
+                    <i data-lucide="calendar"></i>
+                    <input type="date" class="form-control" value="{{ account.end_date or '' }}" disabled>
+                </div>
+                {{ previous_value(original, (original.end_date if original else ''), account.end_date) }}
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">
+                    <i data-lucide="check" size="18"></i> Approve
                 </button>
-                <button type="decline" href="{{ url_for('approvals.approvals') }}" class="btn-secondary">
-                    <i data-lucide="circle-x"></i> Decline
-                </button>
+                <a href="{{ url_for('bank_accounts.edit_bank_account_pending', account_id=account.account_id) }}" class="btn-secondary">
+                    <i data-lucide="pen" size="18"></i> Edit
+                </a>
             </div>
         </form>
     </div>
+
 </main>
 {% endblock %}

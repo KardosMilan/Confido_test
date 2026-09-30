@@ -1,113 +1,100 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<style>
-    .form-grid { display: grid; grid-template-columns: 180px 1fr; gap: 16px; align-items: center; max-width: 600px; }
-    .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius); }
-</style>
 
 <header class="header">
-    <h1>{% if asset %}Edit Managed Asset{% else %}New Managed Asset{% endif %}</h1>
+    <h1>{{ title }}</h1>
 </header>
 
 <main class="content-container">
     <div class="form-card">
-        <!-- Az Action automatikusan vált a New és az Edit útvonal között -->
-        <form id="asset_form" action="{% if asset %}{{ url_for('managed_assets.edit_managed_assets', asset_id=asset.asset_id) }}{% else %}{{ url_for('managed_assets.new_managed_asset') }}{% endif %}" method="POST" class="form-single-column">
-            
-            <!-- asset Name -->
+        <form id="asset_form" action="{{ form_action }}" method="POST" class="form-single-column">
             <div class="form-group">
-                <label>Asset Name</label>
-                <div class="input-wrapper">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                    </svg>
-                    <!-- name="asset_name" HOZZÁADVA -->
-                    <input type="text" name="asset_name" id="asset_name" class="form-control" value="{{ asset.asset_name if asset else '' }}" placeholder="e.g. Real Estate Portfolio Alpha" required>
-                </div>
-            </div>
-
-            <!-- Contract Number -->
-            <div class="form-group">
-                <label>Contract Number</label>
-                <div class="input-wrapper">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="4" y1="9" x2="20" y2="9"></line>
-                        <line x1="4" y1="15" x2="20" y2="15"></line>
-                        <line x1="10" y1="3" x2="8" y2="21"></line>
-                        <line x1="16" y1="3" x2="14" y2="21"></line>
-                    </svg>
-                    <!-- name="contract_number" HOZZÁADVA -->
-                    <input type="text" name="contract_number" id="contract_number" class="form-control" value="{{ asset.contract_number if asset else '' }}" placeholder="e.g. HRSZ or Contract No.">
-                </div>
-            </div>
-
-            <!-- Tax Number (Hiányzott a HTML-ből) -->
-            <div class="form-group">
-                <label>Tax Number</label>
-                <div class="input-wrapper">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="4" y1="9" x2="20" y2="9"></line>
-                        <line x1="4" y1="15" x2="20" y2="15"></line>
-                        <line x1="10" y1="3" x2="8" y2="21"></line>
-                        <line x1="16" y1="3" x2="14" y2="21"></line>
-                    </svg>
-                    <input type="text" name="tax_number" id="tax_number" class="form-control" value="{{ asset.tax_number if asset else '' }}" placeholder="e.g. 12345678-1-11">
-                </div>
-            </div>
-
-
-            <div class="form-group">
-                <label>Contract Date</label>
-                <div class="input-wrapper">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                    <input type="date" name="contract_date" id="contract_date" class="form-control" value="{{ asset.contract_date if asset else '' }}" required>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label>End of Management Date</label>
-                <div class="input-wrapper">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                    <input type="date" name="end_date" id="end_date" class="form-control" value="{{ asset.end_date if asset else '' }}">
-                </div>
-            </div>
-
-            <!-- Currency -->
-            <div class="form-group">
-                <label>Reporting Currency</label>
+                <label for="asset_type">Asset Type</label>
                 <div class="select-wrapper">
-                    <select id="currency" name="currency" class="form-control" required>
-                        <option value="" disabled {{ 'selected' if not asset }}>Select Currency...</option>
-                        {% for c in currencies %}
-                            <option value="{{ c.id }}" {% if asset and asset.currency.id == c.id %}selected{% endif %}>
-                                {{ c.code }} - {{ c.name }}
-                            </option>
+                    <select id="asset_type" name="asset_type" class="form-control" required>
+                        <option value="" disabled {{ 'selected' if not asset or not asset.asset_type }}>Select Asset Type...</option>
+                        {% for t in asset_types %}
+                            <option value="{{ t }}" {% if asset and asset.asset_type == t %}selected{% endif %}>{{ t }}</option>
                         {% endfor %}
                     </select>
                 </div>
             </div>
 
-            <!-- Gombok -->
+            <div class="form-group asset-field" data-types='{{ asset_types | tojson }}'>
+                <label for="asset_name">Asset Name</label>
+                <div class="input-wrapper">
+                    <i data-lucide="tag"></i>
+                    <input type="text" name="asset_name" id="asset_name" class="form-control" value="{{ asset.asset_name if asset and asset.asset_name else '' }}" placeholder="e.g. Hungarian Government Bond 2030/A" maxlength="100">
+                </div>
+            </div>
+
+            <div class="form-group asset-field" data-types='{{ asset_types | tojson }}'>
+                <label for="currency_id">Currency</label>
+                <div class="select-wrapper">
+                    <select id="currency_id" name="currency_id" class="form-control">
+                        <option value="" disabled {{ 'selected' if not asset or not asset.currency_id }}>Select Currency...</option>
+                        {% for c in currencies %}
+                            <option value="{{ c.id }}" {% if asset and asset.currency_id == c.id %}selected{% endif %}>{{ c.code }} - {{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group asset-field" data-types='{{ field_types.isin | tojson }}'>
+                <label for="isin">ISIN</label>
+                <div class="input-wrapper">
+                    <i data-lucide="barcode"></i>
+                    <input type="text" name="isin" id="isin" class="form-control" value="{{ asset.isin | isin if asset and asset.isin else '' }}" placeholder="e.g. HU00 0040 3019" maxlength="14" data-format="isin" autocomplete="off">
+                </div>
+            </div>
+
+            <div class="form-group asset-field" data-types='{{ field_types.nominal_value | tojson }}'>
+                <label for="nominal_value">Nominal Value</label>
+                <div class="input-wrapper">
+                    <i data-lucide="coins"></i>
+                    <input type="number" name="nominal_value" id="nominal_value" class="form-control" value="{{ asset.nominal_value if asset and asset.nominal_value is not none else '' }}" placeholder="e.g. 10000" min="0.01" step="0.01">
+                </div>
+            </div>
+
+            <div class="form-group asset-field" data-types='{{ field_types.price_decimals | tojson }}'>
+                <label for="price_decimals">Price Quotation Decimals</label>
+                <div class="input-wrapper">
+                    <i data-lucide="hash"></i>
+                    <input type="number" name="price_decimals" id="price_decimals" class="form-control" value="{{ asset.price_decimals if asset and asset.price_decimals is not none else '' }}" placeholder="e.g. 4" min="0" max="10" step="1">
+                </div>
+            </div>
+
             <div class="form-actions">
                 <button type="submit" class="btn-primary">
                     <i data-lucide="check" size="18"></i> Save Asset
                 </button>
-                <a href="{{ url_for('managed_assets.managed_assets') }}" class="btn-secondary">Cancel</a>
+                <a href="{{ cancel_url }}" class="btn-secondary">Cancel</a>
             </div>
-
         </form>
     </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const typeSelect = document.getElementById('asset_type');
+    const fieldGroups = document.querySelectorAll('.asset-field');
+
+    function updateAssetFields() {
+        const selectedType = typeSelect.value;
+        fieldGroups.forEach(group => {
+            const visible = JSON.parse(group.dataset.types).includes(selectedType);
+            group.hidden = !visible;
+            group.querySelectorAll('input, select').forEach(input => {
+                input.disabled = !visible;
+                input.required = visible;
+            });
+        });
+    }
+
+    typeSelect.addEventListener('change', updateAssetFields);
+    updateAssetFields();
+});
+</script>
+
 </main>
 {% endblock %}

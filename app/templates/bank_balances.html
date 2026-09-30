@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header class="header">
+    <h1>Bank Account Balances</h1>
+    <div class="table-toolbar">
+        <input type="text" id="tableSearch" class="search-input" placeholder="🔍 Search...">
+    </div>
+</header>
+
+<main class="content-container">
+    <div class="card-full">
+        <form method="GET" action="{{ url_for('data_entry.bank_balances') }}" class="filter-bar">
+            <div class="filter-group">
+                <label for="report_date">Report Date</label>
+                <div class="select-wrapper">
+                    <select id="report_date" name="report_date" class="form-control" onchange="this.form.submit()">
+                        {% for option in report_date_options %}
+                            <option value="{{ option.isoformat() }}" {% if option == report_date %}selected{% endif %}>{{ option.isoformat() }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label for="trust_id">Trust</label>
+                <div class="select-wrapper">
+                    <select id="trust_id" name="trust_id" class="form-control" onchange="this.form.submit()">
+                        <option value="">All Trusts</option>
+                        {% for trust in trusts %}
+                            <option value="{{ trust.trust_id }}" {% if trust.trust_id == trust_id %}selected{% endif %}>{{ trust.trust_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="balance-summary">
+                <span class="badge badge-inactive">Missing: {{ summary['Missing'] }}</span>
+                <span class="badge badge-pending">Pending Approval: {{ summary['Pending Approval'] }}</span>
+                <span class="badge badge-active">Approved: {{ summary['Approved'] }}</span>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="account-table" id="sortableTable">
+                <thead>
+                    <tr>
+                        <th data-sort>Account <span class="sort-icon">↕</span></th>
+                        <th data-sort>Trust <span class="sort-icon">↕</span></th>
+                        <th data-sort>Currency <span class="sort-icon">↕</span></th>
+                        <th data-sort class="amount">Approved <span class="sort-icon">↕</span></th>
+                        <th data-sort class="amount">Pending <span class="sort-icon">↕</span></th>
+                        <th data-sort>Status <span class="sort-icon">↕</span></th>
+                        {% if can_edit %}
+                        <th>Balance Entry</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    {% set acc = row.account %}
+                    <tr id="account-{{ acc.account_id }}">
+                        <td>
+                            <strong>{{ acc.bank_account_name }}</strong>
+                            <span class="cell-note">{{ acc.bank.bank_name if acc.bank else 'N/A' }}</span>
+                            <span class="cell-note">{{ acc.account_number_iban | iban if acc.account_number_iban else 'No IBAN' }}</span>
+                        </td>
+                        <td>{{ acc.trust.trust_name if acc.trust else 'N/A' }}</td>
+                        <td>{{ acc.currency.code if acc.currency else 'N/A' }}</td>
+                        <td class="amount">{{ row.approved.balance | amount(row.decimals) if row.approved else '-' }}</td>
+                        <td class="amount">
+                            {% if row.pending %}
+                                {{ row.pending.balance | amount(row.decimals) }}
+                                <span class="cell-note">by {{ row.pending.inspector_1_user.name if row.pending.inspector_1_user else 'N/A' }}</span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if row.status == 'Approved' %}
+                                <span class="badge badge-active">Approved</span>
+                            {% elif row.status == 'Pending Approval' %}
+                                <span class="badge badge-pending">Pending Approval</span>
+                            {% else %}
+                                <span class="badge badge-inactive">Missing</span>
+                            {% endif %}
+                        </td>
+                        {% if can_edit %}
+                        <td>
+                            <form method="POST" action="{{ url_for('data_entry.save_bank_balance') }}" class="balance-form">
+                                <input type="hidden" name="account_id" value="{{ acc.account_id }}">
+                                <input type="hidden" name="report_date" value="{{ report_date.isoformat() }}">
+                                {% if trust_id %}
+                                <input type="hidden" name="trust_id" value="{{ trust_id }}">
+                                {% endif %}
+                                <input type="number" name="balance" class="form-control balance-input" step="{{ row.step }}" value="{{ row.input_value }}" placeholder="0" required>
+                                <button type="submit" class="btn-primary btn-sm">Save</button>
+                            </form>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% else %}
+                    <tr class="empty-row">
+                        <td colspan="{{ 7 if can_edit else 6 }}">No active bank accounts on {{ report_date.isoformat() }}.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+{% endblock %}
