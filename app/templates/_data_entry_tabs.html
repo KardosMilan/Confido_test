@@ -1,0 +1,6 @@
+<div class="tabs-container">
+    <nav class="tabs-header">
+        <a href="{{ url_for('data_entry.bank_balances') }}" class="tab-btn {{ 'active' if data_entry_tab == 'bank_balances' }}">Bank Account Balances</a>
+        <a href="{{ url_for('data_entry.other_data') }}" class="tab-btn {{ 'active' if data_entry_tab == 'other' }}">Other Data</a>
+    </nav>
+</div>

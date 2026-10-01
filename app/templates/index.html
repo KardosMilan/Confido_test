@@ -12,6 +12,18 @@
     </div>
 
     <div class="dashboard-grid">
+        <a href="{{ url_for('approvals.approvals') }}" class="dashboard-card">
+            <div class="card-icon">
+                <i data-lucide="check-square"></i>
+            </div>
+            <div class="card-content">
+                <h3>Approvals</h3>
+                <p>Review and approve pending trusts, accounts, assets and balances.</p>
+            </div>
+            <div class="card-arrow">
+                <i data-lucide="arrow-right"></i>
+            </div>
+        </a>
 
         <a href="{{ url_for('managed_trusts.managed_trusts') }}" class="dashboard-card">
             <div class="card-icon">
@@ -39,6 +51,45 @@
             </div>
         </a>
 
+        <a href="{{ url_for('managed_assets.managed_assets') }}" class="dashboard-card">
+            <div class="card-icon">
+                <i data-lucide="banknote"></i>
+            </div>
+            <div class="card-content">
+                <h3>Managed Assets</h3>
+                <p>Securities, equity interests, receivables and liabilities.</p>
+            </div>
+            <div class="card-arrow">
+                <i data-lucide="arrow-right"></i>
+            </div>
+        </a>
+
+        <a href="{{ url_for('data_entry.index') }}" class="dashboard-card">
+            <div class="card-icon">
+                <i data-lucide="clipboard-list"></i>
+            </div>
+            <div class="card-content">
+                <h3>Data Entry</h3>
+                <p>Record month-end bank account balances and other data.</p>
+            </div>
+            <div class="card-arrow">
+                <i data-lucide="arrow-right"></i>
+            </div>
+        </a>
+
+        <a href="{{ url_for('banks.banks') }}" class="dashboard-card">
+            <div class="card-icon">
+                <i data-lucide="building"></i>
+            </div>
+            <div class="card-content">
+                <h3>Banks</h3>
+                <p>Maintain the list of banks and their regions.</p>
+            </div>
+            <div class="card-arrow">
+                <i data-lucide="arrow-right"></i>
+            </div>
+        </a>
+
         <a href="{{ url_for('reports.reports') }}" class="dashboard-card">
             <div class="card-icon">
                 <i data-lucide="file-text"></i>
@@ -46,6 +97,19 @@
             <div class="card-content">
                 <h3>Reports</h3>
                 <p>Generate and view financial & activity reports.</p>
+            </div>
+            <div class="card-arrow">
+                <i data-lucide="arrow-right"></i>
+            </div>
+        </a>
+
+        <a href="{{ url_for('users.list_users') }}" class="dashboard-card">
+            <div class="card-icon">
+                <i data-lucide="users"></i>
+            </div>
+            <div class="card-content">
+                <h3>Settings</h3>
+                <p>Manage users and their roles.</p>
             </div>
             <div class="card-arrow">
                 <i data-lucide="arrow-right"></i>

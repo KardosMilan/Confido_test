@@ -9,6 +9,7 @@ from app.models import (
     BankAccount,
     BankAccountPending,
 )
+from app.formatting import format_amount
 from app.identifiers import format_iban, format_pfj, format_isin
 from datetime import date
 from flask_apscheduler import APScheduler
@@ -40,12 +41,7 @@ def create_app(config_class=Config):
         session.permanent = True
         session.modified = True
 
-    @app.template_filter('amount')
-    def format_amount(value, decimals=2):
-        if value is None:
-            return ''
-        return f'{value:,.{decimals}f}'
-
+    app.add_template_filter(format_amount, 'amount')
     app.add_template_filter(format_iban, 'iban')
     app.add_template_filter(format_pfj, 'pfj')
     app.add_template_filter(format_isin, 'isin')

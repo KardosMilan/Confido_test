@@ -18,16 +18,16 @@
             <table class="account-table" id="sortableTable">
                 <thead>
                     <tr>
-                        <th data-sort>Account Name <span class="sort-icon">↕</span></th>
-                        <th data-sort>Bank <span class="sort-icon">↕</span></th>
-                        <th data-sort>IBAN <span class="sort-icon">↕</span></th>
-                        <th data-sort>PFJ <span class="sort-icon">↕</span></th>
-                        <th data-sort>Account Type <span class="sort-icon">↕</span></th>
-                        <th data-sort>Managed Trust <span class="sort-icon">↕</span></th>
-                        <th data-sort>Currency <span class="sort-icon">↕</span></th>
-                        <th data-sort>Opening Date <span class="sort-icon">↕</span></th>
-                        <th data-sort>Closing Date <span class="sort-icon">↕</span></th>
-                        <th data-sort>Status <span class="sort-icon">↕</span></th>
+                        <th data-sort>Name&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>Bank&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>IBAN&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>PFJ&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>Type&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>Trust&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>Currency&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>Open Date&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>Close Date&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>Status&nbsp;<span class="sort-icon">↕</span></th>
                         <th class="action-col"></th>
                     </tr>
                 </thead>
@@ -42,7 +42,7 @@
                         <td>{{ acc.trust.trust_name if acc.trust else 'N/A' }}</td>
                         <td>{{ acc.currency.code if acc.currency else 'N/A' }}</td>
                         <td>{{ acc.contract_date.strftime('%Y-%m-%d') if acc.contract_date else 'N/A' }}</td>
-                        <td>{{ acc.end_date.strftime('%Y-%m-%d') if acc.end_date else 'N/A' }}</td>
+                        <td>{{ acc.end_date.strftime('%Y-%m-%d') if acc.end_date else '-' }}</td>
                         <td>
                             <span class="badge {{ 'badge-active' if acc.status == 'Active' else 'badge-inactive' }}">
                                 {{ acc.status }}

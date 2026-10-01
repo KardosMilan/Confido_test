@@ -2,7 +2,7 @@
 
 {% block content %}
 <header class="header">
-    <h1>Bank Account Balances</h1>
+    <h1>Data Entry</h1>
     <div class="table-toolbar">
         <input type="text" id="tableSearch" class="search-input" placeholder="🔍 Search...">
     </div>
@@ -10,6 +10,8 @@
 
 <main class="content-container">
     <div class="card-full">
+        {% include '_data_entry_tabs.html' %}
+
         <form method="GET" action="{{ url_for('data_entry.bank_balances') }}" class="filter-bar">
             <div class="filter-group">
                 <label for="report_date">Report Date</label>
@@ -45,15 +47,11 @@
             <table class="account-table" id="sortableTable">
                 <thead>
                     <tr>
-                        <th data-sort>Account <span class="sort-icon">↕</span></th>
-                        <th data-sort>Trust <span class="sort-icon">↕</span></th>
-                        <th data-sort>Currency <span class="sort-icon">↕</span></th>
-                        <th data-sort class="amount">Approved <span class="sort-icon">↕</span></th>
-                        <th data-sort class="amount">Pending <span class="sort-icon">↕</span></th>
-                        <th data-sort>Status <span class="sort-icon">↕</span></th>
-                        {% if can_edit %}
-                        <th>Balance Entry</th>
-                        {% endif %}
+                        <th data-sort>Account&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>Trust&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>Currency&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>Status&nbsp;<span class="sort-icon">↕</span></th>
+                        <th>Balance</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -67,15 +65,6 @@
                         </td>
                         <td>{{ acc.trust.trust_name if acc.trust else 'N/A' }}</td>
                         <td>{{ acc.currency.code if acc.currency else 'N/A' }}</td>
-                        <td class="amount">{{ row.approved.balance | amount(row.decimals) if row.approved else '-' }}</td>
-                        <td class="amount">
-                            {% if row.pending %}
-                                {{ row.pending.balance | amount(row.decimals) }}
-                                <span class="cell-note">by {{ row.pending.inspector_1_user.name if row.pending.inspector_1_user else 'N/A' }}</span>
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
                         <td>
                             {% if row.status == 'Approved' %}
                                 <span class="badge badge-active">Approved</span>
@@ -85,28 +74,50 @@
                                 <span class="badge badge-inactive">Missing</span>
                             {% endif %}
                         </td>
-                        {% if can_edit %}
                         <td>
+                            {% if can_edit %}
                             <form method="POST" action="{{ url_for('data_entry.save_bank_balance') }}" class="balance-form">
                                 <input type="hidden" name="account_id" value="{{ acc.account_id }}">
                                 <input type="hidden" name="report_date" value="{{ report_date.isoformat() }}">
                                 {% if trust_id %}
                                 <input type="hidden" name="trust_id" value="{{ trust_id }}">
                                 {% endif %}
-                                <input type="number" name="balance" class="form-control balance-input" step="{{ row.step }}" value="{{ row.input_value }}" placeholder="0" required>
+                                <input type="text" name="balance" class="balance-input" inputmode="decimal" autocomplete="off" data-format="amount" data-decimals="{{ row.decimals }}" value="{{ row.saved_value }}" placeholder="0" {{ 'readonly' if row.saved_value }} required>
+                                {% if row.saved_value %}
+                                <button type="button" class="btn-secondary btn-sm balance-edit">Edit</button>
+                                {% else %}
                                 <button type="submit" class="btn-primary btn-sm">Save</button>
+                                {% endif %}
                             </form>
+                            {% else %}
+                            <span class="amount">{{ row.saved_value or '-' }}</span>
+                            {% endif %}
                         </td>
-                        {% endif %}
                     </tr>
                     {% else %}
                     <tr class="empty-row">
-                        <td colspan="{{ 7 if can_edit else 6 }}">No active bank accounts on {{ report_date.isoformat() }}.</td>
+                        <td colspan="5">No active bank accounts on {{ report_date.isoformat() }}.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
+
+    <script>
+    document.querySelectorAll('.balance-edit').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const input = button.form.querySelector('.balance-input');
+            input.readOnly = false;
+            input.focus();
+            input.setSelectionRange(input.value.length, input.value.length);
+            button.type = 'submit';
+            button.textContent = 'Save';
+            button.classList.replace('btn-secondary', 'btn-primary');
+            button.classList.remove('balance-edit');
+        }, { once: true });
+    });
+    </script>
 </main>
 {% endblock %}
