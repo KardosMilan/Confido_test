@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header class="header">
+    <h1>Data Entry</h1>
+</header>
+
+<main class="content-container">
+    <div class="card-full">
+        {% include '_data_entry_tabs.html' %}
+
+        <div class="empty-state">
+            <i data-lucide="clipboard-list"></i>
+            <h3>Other Data</h3>
+            <p>This data entry page is reserved for upcoming data types.</p>
+        </div>
+    </div>
+</main>
+{% endblock %}

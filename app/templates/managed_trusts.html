@@ -18,13 +18,13 @@
             <table class="account-table" id="sortableTable">
                 <thead>
                     <tr>
-                        <th data-sort>Trust Name <span class="sort-icon">↕</span></th>
-                        <th data-sort>Contract number <span class="sort-icon">↕</span></th>
-                        <th data-sort>Tax Number <span class="sort-icon">↕</span></th>
-                        <th data-sort>Contract Date <span class="sort-icon">↕</span></th>
-                        <th data-sort>End of Management Date <span class="sort-icon">↕</span></th>
-                        <th data-sort>Riporting Currency <span class="sort-icon">↕</span></th>
-                        <th data-sort>Status <span class="sort-icon">↕</span></th>
+                        <th data-sort>Trust Name&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>Contract number&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>Tax Number&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>Contract Date&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>End of Management Date&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>Riporting Currency&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>Status&nbsp;<span class="sort-icon">↕</span></th>
                         <th class="action-col"></th>
                     </tr>
                 </thead>
@@ -35,7 +35,7 @@
                         <td>{{ trust.contract_number or 'N/A'}}</td>
                         <td>{{ trust.tax_number or 'N/A' }}</td>
                         <td>{{ trust.contract_date.strftime('%Y-%m-%d') if trust.contract_date else 'N/A' }}</td>
-                        <td>{{ trust.end_date.strftime('%Y-%m-%d') if trust.end_date else 'N/A' }}</td>
+                        <td>{{ trust.end_date.strftime('%Y-%m-%d') if trust.end_date else '-' }}</td>
                         <td>{{ trust.currency.code if trust.currency else 'N/A' }}</td>
                         <td>
                             <span class="badge {{ 'badge-active' if trust.status == 'Active' else 'badge-inactive' }}">

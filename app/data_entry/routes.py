@@ -1,9 +1,11 @@
 import calendar
+import re
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 from app.extensions import db
+from app.formatting import format_amount
 from app.models import BankAccount, BankAccountBalance, BankAccountPendingBalance, ManagedTrusts, RiportDate
 
 ALLOWED_ROLES = ['Admin', 'Approver']
@@ -68,6 +70,15 @@ def quantum(decimals):
     return Decimal(1).scaleb(-decimals)
 
 
+def parse_amount(value):
+    cleaned = re.sub(r'\s', '', value or '').replace(',', '.')
+    try:
+        amount = Decimal(cleaned)
+    except InvalidOperation:
+        return None
+    return amount if amount.is_finite() else None
+
+
 def get_or_create_report_date(report_date):
     riport_date = RiportDate.query.filter_by(honap_utolso_napja=report_date).first()
     if riport_date is None:
@@ -76,6 +87,16 @@ def get_or_create_report_date(report_date):
         db.session.flush()
     return riport_date
 
+
+@data_entry_bp.route('/data-entry')
+@login_required
+def index():
+    return redirect(url_for('data_entry.bank_balances'))
+
+@data_entry_bp.route('/data-entry/other')
+@login_required
+def other_data():
+    return render_template('data_entry_other.html', data_entry_tab='other', active_page='data_entry')
 
 @data_entry_bp.route('/data-entry/bank-balances')
 @login_required
@@ -109,12 +130,9 @@ def bank_balances():
         current = pending_balance or approved_balance
         rows.append({
             'account': account,
-            'approved': approved_balance,
-            'pending': pending_balance,
             'status': status,
             'decimals': decimals,
-            'step': format(quantum(decimals), 'f'),
-            'input_value': format(Decimal(current.balance).quantize(quantum(decimals)), 'f') if current else '',
+            'saved_value': format_amount(current.balance, decimals) if current else '',
         })
 
     summary = {status: sum(1 for row in rows if row['status'] == status) for status in BALANCE_STATUSES}
@@ -128,7 +146,8 @@ def bank_balances():
         trusts=ManagedTrusts.query.order_by(ManagedTrusts.trust_name).all(),
         trust_id=trust_id,
         can_edit=current_user.role in ALLOWED_ROLES,
-        active_page='bank_balances'
+        data_entry_tab='bank_balances',
+        active_page='data_entry'
     )
 
 @data_entry_bp.route('/data-entry/bank-balances', methods=['POST'])
@@ -158,12 +177,12 @@ def save_bank_balance():
         return redirect(back_url)
 
     decimals = currency_decimals(account)
-    try:
-        balance = Decimal((request.form.get('balance') or '').strip().replace(' ', ''))
-    except InvalidOperation:
-        balance = None
-    if balance is None or not balance.is_finite():
+    balance = parse_amount(request.form.get('balance'))
+    if balance is None:
         flash('Balance must be a number!', 'danger')
+        return redirect(back_url)
+    if balance < 0:
+        flash('Balance can not be negative!', 'danger')
         return redirect(back_url)
     if balance != balance.quantize(quantum(decimals)):
         currency_code = account.currency.code if account.currency else 'This currency'

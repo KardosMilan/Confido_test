@@ -46,18 +46,10 @@
                 </a>
             </li>
             <li class="menu-item">
-                <a href="{{ url_for('data_entry.bank_balances') }}" class="menu-link {% if active_page == 'bank_balances' %}open{% endif %}">
+                <a href="{{ url_for('data_entry.index') }}" class="menu-link {% if active_page == 'data_entry' %}active{% endif %}">
                     <i data-lucide="clipboard-list"></i>
                     <span>Data Entry</span>
                 </a>
-                <ul class="submenu">
-                    <li>
-                        <a href="{{ url_for('data_entry.bank_balances') }}" class="submenu-link {% if active_page == 'bank_balances' %}active{% endif %}">
-                            <i data-lucide="wallet"></i>
-                            <span>Bank Account Balances</span>
-                        </a>
-                    </li>
-                </ul>
             </li>
             <li class="menu-item">
                 <a href="{{ url_for('banks.banks') }}" class="menu-link {% if active_page == 'banks' %}active{% endif %}">
@@ -216,47 +208,82 @@
             return (country + body).slice(0, maxLength);
         }
 
-        const IDENTIFIER_FORMATS = {
-            iban(value) {
-                const compact = keepCharacters(value, value.toUpperCase().startsWith('HU'), 2, value.toUpperCase().startsWith('HU') ? 28 : 34);
-                const groups = compact.slice(4).match(/.{1,8}/g) || [];
-                return [compact.slice(0, 4), ...groups].filter(Boolean).join(' ');
+        function groupAmount(value) {
+            const normalized = value.replace(/,/g, '.').replace(/[^0-9.]/g, '');
+            const [integerPart, ...fractionParts] = normalized.split('.');
+            const integer = integerPart.replace(/^0+(?=\d)/, '');
+            const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+            if (fractionParts.length === 0) return grouped;
+            return (grouped || '0') + '.' + fractionParts.join('');
+        }
+
+        const INPUT_FORMATS = {
+            iban: {
+                significant: /[A-Za-z0-9]/,
+                format(value) {
+                    const compact = keepCharacters(value, value.toUpperCase().startsWith('HU'), 2, value.toUpperCase().startsWith('HU') ? 28 : 34);
+                    const groups = compact.slice(4).match(/.{1,8}/g) || [];
+                    return [compact.slice(0, 4), ...groups].filter(Boolean).join(' ');
+                },
             },
-            pfj(value) {
-                const digits = value.replace(/\D/g, '').slice(0, 24);
-                return (digits.match(/.{1,8}/g) || []).join('-');
+            pfj: {
+                significant: /[A-Za-z0-9]/,
+                format(value) {
+                    const digits = value.replace(/\D/g, '').slice(0, 24);
+                    return (digits.match(/.{1,8}/g) || []).join('-');
+                },
             },
-            isin(value) {
-                const compact = keepCharacters(value, value.toUpperCase().startsWith('HU'), 0, 12);
-                return (compact.match(/.{1,4}/g) || []).join(' ');
+            isin: {
+                significant: /[A-Za-z0-9]/,
+                format(value) {
+                    const compact = keepCharacters(value, value.toUpperCase().startsWith('HU'), 0, 12);
+                    return (compact.match(/.{1,4}/g) || []).join(' ');
+                },
+            },
+            amount: {
+                significant: /[0-9.,]/,
+                format(value) {
+                    return groupAmount(value);
+                },
+                validate(input) {
+                    const decimals = Number(input.dataset.decimals ?? 2);
+                    const fraction = input.value.split('.')[1] || '';
+                    let message = '';
+                    if (fraction.length > decimals) {
+                        message = decimals === 0 ? 'This currency has no decimal places.' : `At most ${decimals} decimal places are allowed.`;
+                    }
+                    input.setCustomValidity(message);
+                },
             },
         };
 
-        function applyFormat(input, formatter) {
+        function applyFormat(input, spec) {
             const caret = input.selectionStart ?? input.value.length;
-            const significantBefore = input.value.slice(0, caret).replace(/[^A-Za-z0-9]/g, '').length;
-            input.value = formatter(input.value);
+            const significantBefore = Array.from(input.value.slice(0, caret)).filter(ch => spec.significant.test(ch)).length;
+            input.value = spec.format(input.value, input);
 
             let pos = 0;
             let seen = 0;
             while (pos < input.value.length && seen < significantBefore) {
-                if (/[A-Za-z0-9]/.test(input.value[pos])) seen++;
+                if (spec.significant.test(input.value[pos])) seen++;
                 pos++;
             }
             input.setSelectionRange(pos, pos);
+            spec.validate?.(input);
         }
 
-        function initIdentifierInputs() {
+        function initFormattedInputs() {
             document.querySelectorAll('input[data-format]').forEach(input => {
-                const formatter = IDENTIFIER_FORMATS[input.dataset.format];
-                if (!formatter) return;
-                input.value = formatter(input.value);
-                input.addEventListener('input', () => applyFormat(input, formatter));
+                const spec = INPUT_FORMATS[input.dataset.format];
+                if (!spec) return;
+                input.value = spec.format(input.value, input);
+                spec.validate?.(input);
+                input.addEventListener('input', () => applyFormat(input, spec));
             });
         }
 
         initTableTools();
-        initIdentifierInputs();
+        initFormattedInputs();
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
