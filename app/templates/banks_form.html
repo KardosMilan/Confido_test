@@ -7,12 +7,12 @@
 
 <main class="content-container">
     <div class="form-card">
-        <form id="bank_form" action="{% if bank %}{{ url_for('banks.edit_bank', id=bank.id) }}{% else %}{{ url_for('banks.new_bank') }}{% endif %}" method="POST" class="form-single-column">
+        <form id="bank_form" action="{% if bank %}{{ url_for('banks.edit_bank', id=bank.bank_id) }}{% else %}{{ url_for('banks.new_bank') }}{% endif %}" method="POST" class="form-single-column">
 
             <div class="form-group">
                 <label>Bank Name</label>
                 <div class="input-wrapper">
-                    <input type="text" name="bank_name" id="name" class="form-control" value="{{ bank.name if bank else '' }}" placeholder="e.g. My Custom Bank" required>
+                    <input type="text" name="bank_name" id="name" class="form-control" value="{{ bank.bank_name if bank else '' }}" placeholder="e.g. My Custom Bank" required>
                 </div>
             </div>
 

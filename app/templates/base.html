@@ -310,7 +310,7 @@
                 cancelButtonColor: '#64748b',
                 confirmButtonText: 'Yes, delete it!',
                 cancelButtonText: 'Cancel',
-                reverseButtons: true
+                reverseButtons: false
             };
             if (word) {
                 Object.assign(options, {
@@ -343,7 +343,7 @@
                 cancelButtonColor: '#64748b',
                 confirmButtonText: 'OK',
                 cancelButtonText: 'Cancel',
-                reverseButtons: true
+                reverseButtons: false
             }).then(result => {
                 if (result.isConfirmed) form.submit();
             });

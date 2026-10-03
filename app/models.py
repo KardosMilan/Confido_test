@@ -23,13 +23,13 @@ class AccountType(str, Enum):
 
 class AssetType(str, Enum):
     SECURITIES = "Securities"
-    EQUITY_INTERESTS = "Equity Interests"
+    SHARE_HOLDINGS = "Share Holdings"
     RECEIVABLES = "Receivables"
     LIABILITIES = "Liabilities"
 
 ASSET_TYPE_FIELDS = {
     AssetType.SECURITIES.value: ('isin', 'nominal_value', 'price_decimals'),
-    AssetType.EQUITY_INTERESTS.value: ('nominal_value',),
+    AssetType.SHARE_HOLDINGS.value: ('nominal_value',),
     AssetType.RECEIVABLES.value: (),
     AssetType.LIABILITIES.value: (),
 }

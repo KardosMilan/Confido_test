@@ -42,7 +42,6 @@ def edit_bank(id):
     bank = Bank.query.get_or_404(id)
 
     if request.method == 'POST':
-        bank.bank_id = request.form.get('bank_id', type=int)
         bank.bank_name = request.form.get('bank_name')
         bank.region = request.form.get('region')
 
