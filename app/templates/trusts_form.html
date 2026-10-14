@@ -79,7 +79,7 @@
                     <select id="riporting_currency" name="riporting_currency" class="form-control" required>
                         <option value="" disabled {{ 'selected' if not trust }}>Select Currency...</option>
                         {% for c in currencies %}
-                            <option value="{{ c.id }}" {% if trust and trust.currency.id == c.id %}selected{% endif %}>
+                            <option value="{{ c.id }}" {% if trust and trust.riporting_currency == c.id %}selected{% endif %}>
                                 {{ c.code }} - {{ c.name }}
                             </option>
                         {% endfor %}

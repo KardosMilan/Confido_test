@@ -22,13 +22,15 @@ class AccountType(str, Enum):
     SECURITIES = "Securities Account"
 
 class AssetType(str, Enum):
-    SECURITIES = "Securities"
+    BOND = "Bond"
+    EQUITY = "Equity"
     SHARE_HOLDINGS = "Share Holdings"
     RECEIVABLES = "Receivables"
     LIABILITIES = "Liabilities"
 
 ASSET_TYPE_FIELDS = {
-    AssetType.SECURITIES.value: ('isin', 'nominal_value', 'price_decimals'),
+    AssetType.BOND.value: ('isin', 'nominal_value', 'price_decimals'),
+    AssetType.EQUITY.value: ('isin', 'nominal_value', 'price_decimals'),
     AssetType.SHARE_HOLDINGS.value: ('nominal_value',),
     AssetType.RECEIVABLES.value: (),
     AssetType.LIABILITIES.value: (),
@@ -37,6 +39,9 @@ ASSET_TYPE_FIELDS = {
 TRUST_FIELDS = ('trust_name', 'contract_number', 'tax_number', 'contract_date', 'end_date', 'riporting_currency', 'status')
 ACCOUNT_FIELDS = ('trust_id', 'bank_id', 'currency_id', 'type', 'account_number_iban', 'account_number_pfj', 'bank_account_name', 'contract_date', 'end_date', 'status')
 ASSET_FIELDS = ('asset_type', 'asset_name', 'currency_id', 'isin', 'nominal_value', 'price_decimals')
+PORTFOLIO_FIELDS = ('trust_id', 'asset_id', 'date', 'transaction', 'asset_number', 'exchange_rate', 'value')
+
+TRANSACTION_TYPES = ('Buy', 'Sell')
 
 
 def copy_fields(source, target, fields):
@@ -221,24 +226,29 @@ class Bank(db.Model):
     bank_id = db.Column('BANK ID', db.Integer, primary_key=True)
     bank_name = db.Column('Bank Name', db.String(100))
     region = db.Column('Region', db.String(50))
+    giro_codes = db.Column('GIRO Codes', db.String(100))
     bank_accounts = db.relationship('BankAccount', backref='bank', lazy=True)
 
+    @property
+    def giro_code_list(self):
+        return [code.strip() for code in (self.giro_codes or '').split(',') if code.strip()]
+
 INITIAL_BANKS = [
-    {"bank_id": 1, "name": "OTP Bank Nyrt.", "region": "Hungary"},
-    {"bank_id": 2, "name": "K&H Bank Zrt.", "region": "Hungary"},
-    {"bank_id": 3, "name": "Erste Bank Hungary Zrt.", "region": "Hungary"},
-    {"bank_id": 4, "name": "Raiffeisen Bank Zrt.", "region": "Hungary"},
-    {"bank_id": 5, "name": "UniCredit Bank Hungary Zrt.", "region": "Hungary"},
-    {"bank_id": 6, "name": "MBH Bank Nyrt.", "region": "Hungary"},
-    {"bank_id": 7, "name": "CIB Bank Zrt.", "region": "Hungary"},
-    {"bank_id": 8, "name": "Gránit Bank Zrt.", "region": "Hungary"},
-    {"bank_id": 9, "name": "MagNet Bank Zrt.", "region": "Hungary"},
+    {"bank_id": 1, "name": "OTP Bank Nyrt.", "region": "Hungary", "giro_codes": "117"},
+    {"bank_id": 2, "name": "K&H Bank Zrt.", "region": "Hungary", "giro_codes": "104"},
+    {"bank_id": 3, "name": "Erste Bank Hungary Zrt.", "region": "Hungary", "giro_codes": "116"},
+    {"bank_id": 4, "name": "Raiffeisen Bank Zrt.", "region": "Hungary", "giro_codes": "120"},
+    {"bank_id": 5, "name": "UniCredit Bank Hungary Zrt.", "region": "Hungary", "giro_codes": "109"},
+    {"bank_id": 6, "name": "MBH Bank Nyrt.", "region": "Hungary", "giro_codes": "101,103,504,670,721"},
+    {"bank_id": 7, "name": "CIB Bank Zrt.", "region": "Hungary", "giro_codes": "107"},
+    {"bank_id": 8, "name": "Gránit Bank Zrt.", "region": "Hungary", "giro_codes": "121"},
+    {"bank_id": 9, "name": "MagNet Bank Zrt.", "region": "Hungary", "giro_codes": "162"},
     {"bank_id": 10, "name": "Polgári Bank Zrt.", "region": "Hungary"},
     {"bank_id": 11, "name": "Takarékbank Zrt.", "region": "Hungary"},
     {"bank_id": 12, "name": "Eximbank Zrt.", "region": "Hungary"},
     {"bank_id": 13, "name": "MFB Zrt.", "region": "Hungary"},
     {"bank_id": 14, "name": "KDB Bank Europe", "region": "Hungary"},
-    {"bank_id": 15, "name": "Sberbank Hungary (inactive)", "region": "Hungary"},
+    {"bank_id": 15, "name": "Sberbank Hungary (inactive)", "region": "Hungary", "giro_codes": "141"},
     {"bank_id": 17, "name": "Deutsche Bank", "region": "EU"},
     {"bank_id": 18, "name": "Commerzbank", "region": "EU"},
     {"bank_id": 19, "name": "DZ Bank", "region": "EU"},
@@ -430,8 +440,17 @@ INITIAL_BANKS = [
 def seed_banks():
     if Bank.query.first() is None:
         for b in INITIAL_BANKS:
-            db.session.add(Bank(bank_id=b["bank_id"], bank_name=b["name"], region=b["region"]))
+            db.session.add(Bank(bank_id=b["bank_id"], bank_name=b["name"], region=b["region"], giro_codes=b.get("giro_codes")))
         db.session.commit()
+        return
+
+    for b in INITIAL_BANKS:
+        if not b.get("giro_codes"):
+            continue
+        bank = db.session.get(Bank, b["bank_id"])
+        if bank is not None and not bank.giro_codes and bank.bank_name == b["name"]:
+            bank.giro_codes = b["giro_codes"]
+    db.session.commit()
 
 
 
@@ -508,6 +527,7 @@ class ManagedTrusts(db.Model):
     bank_accounts = db.relationship('BankAccount', backref='managed_trust', lazy=True)
     pending_changes = db.relationship('ManagedTrustsPending', back_populates='original', cascade='all, delete-orphan')
     reports = db.relationship('Report', back_populates='trust')
+    portfolio_items = db.relationship('Portfolio', back_populates='trust')
     currency = db.relationship('Currency', foreign_keys=[riporting_currency])
     inspector_1_user = db.relationship('User', foreign_keys=[inspector_1])
     inspector_2_user = db.relationship('User', foreign_keys=[inspector_2])
@@ -581,6 +601,7 @@ class ManagedAssets(db.Model):
     inspector_1_user = db.relationship('User', foreign_keys=[inspector_1])
     inspector_2_user = db.relationship('User', foreign_keys=[inspector_2])
     pending_changes = db.relationship('ManagedAssetsPending', back_populates='original', cascade='all, delete-orphan')
+    portfolio_items = db.relationship('Portfolio', back_populates='asset')
 
 
 class ManagedAssetsPending(db.Model):
@@ -619,3 +640,72 @@ class Report(db.Model):
     trust = db.relationship('ManagedTrusts', foreign_keys=[trust_id], back_populates='reports')
     created_by_user = db.relationship('User', foreign_keys=[created_by])
     updated_by_user = db.relationship('User', foreign_keys=[updated_by])
+
+
+class Portfolio(db.Model):
+    __tablename__ = 'portfolio'
+    portfolio_id = db.Column('Portfolio ID', db.Integer, primary_key=True)
+    trust_id = db.Column('Trust ID', db.Integer, db.ForeignKey('managed_trusts.Trust ID'), nullable=False)
+    asset_id = db.Column('Asset ID', db.Integer, db.ForeignKey('managed_assets.asset ID'), nullable=False)
+    date = db.Column('Date', db.Date, nullable=False)
+    transaction = db.Column('Transaction', db.String(4), nullable=False, default='Buy')
+    asset_number = db.Column('Asset Number', db.Numeric(18, 4))
+    exchange_rate = db.Column('Exchange Rate', db.Numeric(18, 6))
+    value = db.Column('Value', db.Numeric(18, 2), nullable=False)
+    state = db.Column('State', db.String(50))
+    inspector_1 = db.Column('Inspector 1', db.Integer, db.ForeignKey('users.id'), nullable=True)
+    inspector_2 = db.Column('Inspector 2', db.Integer, db.ForeignKey('users.id'), nullable=True)
+    approval_time = db.Column('ApprovalTime', db.DateTime, default=datetime.utcnow)
+
+    trust = db.relationship('ManagedTrusts', foreign_keys=[trust_id], back_populates='portfolio_items')
+    asset = db.relationship('ManagedAssets', foreign_keys=[asset_id], back_populates='portfolio_items')
+    inspector_1_user = db.relationship('User', foreign_keys=[inspector_1])
+    inspector_2_user = db.relationship('User', foreign_keys=[inspector_2])
+    pending_changes = db.relationship('PortfolioPending', back_populates='original', cascade='all, delete-orphan')
+
+
+class PortfolioPending(db.Model):
+    __tablename__ = 'portfolio_pending'
+    portfolio_id = db.Column('Portfolio ID', db.Integer, primary_key=True)
+    original_portfolio_id = db.Column('Original Portfolio ID', db.Integer, db.ForeignKey('portfolio.Portfolio ID'), nullable=True)
+    trust_id = db.Column('Trust ID', db.Integer, db.ForeignKey('managed_trusts.Trust ID'), nullable=False)
+    asset_id = db.Column('Asset ID', db.Integer, db.ForeignKey('managed_assets.asset ID'), nullable=False)
+    date = db.Column('Date', db.Date, nullable=False)
+    transaction = db.Column('Transaction', db.String(4), nullable=False, default='Buy')
+    asset_number = db.Column('Asset Number', db.Numeric(18, 4))
+    exchange_rate = db.Column('Exchange Rate', db.Numeric(18, 6))
+    value = db.Column('Value', db.Numeric(18, 2), nullable=False)
+    state = db.Column('State', db.String(50))
+    inspector_1 = db.Column('Inspector 1', db.Integer, db.ForeignKey('users.id'), nullable=True)
+    inspector_2 = db.Column('Inspector 2', db.Integer, db.ForeignKey('users.id'), nullable=True)
+    approval_time = db.Column('ApprovalTime', db.DateTime, default=datetime.utcnow)
+
+    trust = db.relationship('ManagedTrusts', foreign_keys=[trust_id])
+    asset = db.relationship('ManagedAssets', foreign_keys=[asset_id])
+    inspector_1_user = db.relationship('User', foreign_keys=[inspector_1])
+    inspector_2_user = db.relationship('User', foreign_keys=[inspector_2])
+    original = db.relationship('Portfolio', foreign_keys=[original_portfolio_id], back_populates='pending_changes')
+
+
+class ExchangeRate(db.Model):
+    __tablename__ = 'exchange_rates'
+    __table_args__ = (db.UniqueConstraint('Currency', 'Rate Date', name='uq_exchange_rate_currency_date'),)
+    rate_id = db.Column('Rate ID', db.Integer, primary_key=True)
+    currency_id = db.Column('Currency', db.Integer, db.ForeignKey('currency.id'), nullable=False)
+    rate_date = db.Column('Rate Date', db.Date, nullable=False)
+    rate = db.Column('Rate', db.Numeric(18, 6), nullable=False)
+    source = db.Column('Source', db.String(20), nullable=False, default='MNB')
+    updated_at = db.Column('Updated At', db.DateTime, default=datetime.utcnow)
+    updated_by = db.Column('Updated By', db.Integer, db.ForeignKey('users.id'), nullable=True)
+
+    currency = db.relationship('Currency', foreign_keys=[currency_id])
+    updated_by_user = db.relationship('User', foreign_keys=[updated_by])
+
+
+class ExchangeRateUpdate(db.Model):
+    __tablename__ = 'exchange_rate_updates'
+    update_id = db.Column('Update ID', db.Integer, primary_key=True)
+    run_at = db.Column('Run At', db.DateTime, default=datetime.utcnow)
+    status = db.Column('Status', db.String(20), nullable=False)
+    updated_count = db.Column('Updated Count', db.Integer, default=0)
+    message = db.Column('Message', db.String(1000))

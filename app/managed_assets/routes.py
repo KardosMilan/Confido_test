@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash
 from pydantic import ValidationError
 from app.extensions import db
 from app.identifiers import SecurityIdentifier, first_error
-from app.models import ManagedAssets, ManagedAssetsPending, Currency, AssetType, ASSET_TYPE_FIELDS, ASSET_FIELDS, copy_fields
+from app.models import ManagedAssets, ManagedAssetsPending, Currency, AssetType, ASSET_TYPE_FIELDS, ASSET_FIELDS, PortfolioPending, copy_fields
 from flask_login import login_required, current_user
 
 ALLOWED_ROLES = ['Admin', 'Approver']
@@ -193,6 +193,10 @@ def delete_managed_assets(asset_id):
     asset = ManagedAssets.query.get_or_404(asset_id)
     if current_user.role not in ALLOWED_ROLES:
         flash('No permission granted!', 'danger')
+        return redirect(url_for('managed_assets.managed_assets'))
+
+    if asset.portfolio_items or PortfolioPending.query.filter_by(asset_id=asset_id).first():
+        flash('This asset has portfolio entries and can not be deleted!', 'danger')
         return redirect(url_for('managed_assets.managed_assets'))
 
     db.session.delete(asset)

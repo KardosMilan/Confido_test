@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header class="header">
+    <h1>Data</h1>
+    <a href="{{ url_for('exchange_rates.new_exchange_rate') }}" class="btn-primary">
+        <i data-lucide="plus"></i> New Exchange Rate
+    </a>
+    <div class="table-toolbar">
+        <input type="text" id="tableSearch" class="search-input" placeholder="🔍 Search...">
+    </div>
+</header>
+
+<main class="content-container">
+    <div class="card-full">
+        {% include '_data_tabs.html' %}
+
+        <div class="update-status">
+            <span class="update-status-item">
+                <i data-lucide="refresh-cw"></i>
+                Last successful MNB update: <strong>{{ last_success.run_at.strftime('%Y-%m-%d %H:%M') if last_success else 'Never' }}</strong>
+            </span>
+            {% if failures %}
+            <span class="badge badge-inactive">Failed updates: {{ failures | length }}</span>
+            {% else %}
+            <span class="badge badge-active">No failed updates</span>
+            {% endif %}
+        </div>
+        {% if failures %}
+        <ul class="update-failures">
+            {% for failure in failures %}
+            <li><strong>{{ failure.run_at.strftime('%Y-%m-%d %H:%M') }}</strong> {{ failure.message or 'Unknown error' }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        <div class="table-responsive">
+            <table class="account-table" id="sortableTable">
+                <thead>
+                    <tr>
+                        <th data-sort>Currency&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>Report Date&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort class="amount">Rate (HUF)&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>Source&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>Last Updated&nbsp;<span class="sort-icon">↕</span></th>
+                        <th class="action-col"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rate in rates %}
+                    <tr>
+                        <td><strong>{{ rate.currency.code }}/HUF</strong></td>
+                        <td>{{ rate.rate_date.isoformat() }}</td>
+                        <td class="amount">{{ rate.rate | rate }}</td>
+                        <td><span class="badge {{ 'badge-pending' if rate.source == 'Manual' else 'badge-active' }}">{{ rate.source }}</span></td>
+                        <td>
+                            {{ rate.updated_at.strftime('%Y-%m-%d %H:%M') if rate.updated_at else '-' }}
+                            {% if rate.updated_by_user %}<span class="cell-note">by {{ rate.updated_by_user.name }}</span>{% endif %}
+                        </td>
+                        <td class="action-cell">
+                            <button type="button" class="icon-btn" onclick="toggleDropdown(event)">
+                                <i data-lucide="more-vertical"></i>
+                            </button>
+                            <div class="dropdown-menu">
+                                <a href="{{ url_for('exchange_rates.edit_exchange_rate', rate_id=rate.rate_id) }}" class="dropdown-item">Edit</a>
+                                <form action="{{ url_for('exchange_rates.delete_exchange_rate', rate_id=rate.rate_id) }}" method="POST" class="delete-form">
+                                    <button type="submit" class="dropdown-item delete">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr class="empty-row">
+                        <td colspan="6">No exchange rates yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+{% endblock %}

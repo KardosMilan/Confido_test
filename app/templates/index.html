@@ -57,7 +57,20 @@
             </div>
             <div class="card-content">
                 <h3>Managed Assets</h3>
-                <p>Securities, share holdings, receivables and liabilities.</p>
+                <p>Bonds, equities, share holdings, receivables and liabilities.</p>
+            </div>
+            <div class="card-arrow">
+                <i data-lucide="arrow-right"></i>
+            </div>
+        </a>
+
+        <a href="{{ url_for('portfolio.portfolio') }}" class="dashboard-card">
+            <div class="card-icon">
+                <i data-lucide="pie-chart"></i>
+            </div>
+            <div class="card-content">
+                <h3>Portfolio Settings</h3>
+                <p>Record asset purchases and sales of the managed trusts.</p>
             </div>
             <div class="card-arrow">
                 <i data-lucide="arrow-right"></i>
@@ -77,13 +90,13 @@
             </div>
         </a>
 
-        <a href="{{ url_for('banks.banks') }}" class="dashboard-card">
+        <a href="{{ url_for('banks.data') }}" class="dashboard-card">
             <div class="card-icon">
-                <i data-lucide="building"></i>
+                <i data-lucide="database"></i>
             </div>
             <div class="card-content">
-                <h3>Banks</h3>
-                <p>Maintain the list of banks and their regions.</p>
+                <h3>Data</h3>
+                <p>Maintain banks and month-end exchange rates.</p>
             </div>
             <div class="card-arrow">
                 <i data-lucide="arrow-right"></i>

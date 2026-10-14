@@ -3,6 +3,7 @@ from pydantic import ValidationError
 from app.extensions import db
 from app.identifiers import BankAccountIdentifiers, first_error
 from app.models import BankAccount, Bank, Currency, ManagedTrusts, AccountType, BankAccountPending, ACCOUNT_FIELDS, copy_fields
+from app.validation import parse_form_date
 from flask_login import login_required, current_user
 from datetime import datetime, date
 
@@ -11,26 +12,30 @@ ALLOWED_ROLES = ['Admin', 'Approver']
 bank_accounts_bp = Blueprint('bank_accounts', __name__)
 
 
-def parse_date(value):
-    return datetime.strptime(value, '%Y-%m-%d').date() if value else None
-
-
 def status_for(end_date):
     return 'Active' if end_date is None or end_date >= date.today() else 'Inactive'
 
 
-def validate_identifiers(form):
+def validate_account_form(form):
     try:
-        return BankAccountIdentifiers(
+        identifiers = BankAccountIdentifiers(
             account_number_iban=form.get('account_number_iban'),
             account_number_pfj=form.get('account_number_pfj'),
-        ), None
+        )
     except ValidationError as exc:
         return None, first_error(exc)
 
+    contract_date, error = parse_form_date(form.get('contract_date'), 'Opening date')
+    if error:
+        return None, error
+    end_date, error = parse_form_date(form.get('end_date'), 'Closing date')
+    if error:
+        return None, error
+    return (identifiers, contract_date, end_date), None
 
-def fill_account(target, form, identifiers):
-    end_date = parse_date(form.get('end_date'))
+
+def fill_account(target, form, validated):
+    identifiers, contract_date, end_date = validated
     target.bank_account_name = form.get('bank_account_name')
     target.account_number_iban = identifiers.account_number_iban
     target.account_number_pfj = identifiers.account_number_pfj
@@ -38,7 +43,7 @@ def fill_account(target, form, identifiers):
     target.bank_id = form.get('bank_id', type=int)
     target.trust_id = form.get('trust_id', type=int)
     target.currency_id = form.get('currency', type=int)
-    target.contract_date = parse_date(form.get('contract_date')) or target.contract_date
+    target.contract_date = contract_date or target.contract_date
     target.end_date = end_date
     target.status = status_for(end_date)
     target.state = "Pending"
@@ -91,13 +96,13 @@ def new_bank_account():
     cancel_url = url_for('bank_accounts.bank_accounts')
 
     if request.method == 'POST':
-        identifiers, error = validate_identifiers(request.form)
+        validated, error = validate_account_form(request.form)
         if error:
             flash(error, 'danger')
             return render_account_form(draft_from_form(request.form), title, cancel_url, 'new_account')
 
         new_account = BankAccountPending()
-        fill_account(new_account, request.form, identifiers)
+        fill_account(new_account, request.form, validated)
         db.session.add(new_account)
         db.session.commit()
         flash('Bank account saved and sent for approval.', 'success')
@@ -118,7 +123,7 @@ def edit_bank_account(account_id):
     cancel_url = url_for('bank_accounts.bank_accounts')
 
     if request.method == 'POST':
-        identifiers, error = validate_identifiers(request.form)
+        validated, error = validate_account_form(request.form)
         if error:
             flash(error, 'danger')
             return render_account_form(draft_from_form(request.form), title, cancel_url, 'bank_accounts')
@@ -128,7 +133,7 @@ def edit_bank_account(account_id):
             copy_fields(account, change, ACCOUNT_FIELDS)
             db.session.add(change)
 
-        fill_account(change, request.form, identifiers)
+        fill_account(change, request.form, validated)
         account.state = "Pending"
 
         db.session.commit()
@@ -165,12 +170,12 @@ def edit_bank_account_pending(account_id):
     cancel_url = url_for('approvals.approve_account', account_id=account_id)
 
     if request.method == 'POST':
-        identifiers, error = validate_identifiers(request.form)
+        validated, error = validate_account_form(request.form)
         if error:
             flash(error, 'danger')
             return render_account_form(draft_from_form(request.form), title, cancel_url, 'approvals')
 
-        fill_account(account, request.form, identifiers)
+        fill_account(account, request.form, validated)
         db.session.commit()
         return redirect(url_for('approvals.approvals', tab='accounts'))
 

@@ -1,6 +1,20 @@
 {% extends 'base.html' %}
 
 {% block content %}
+{% macro row_actions(approve_url, edit_url, decline_url, confirm_text) %}
+<td class="row-actions-cell">
+    <div class="row-actions">
+        <form action="{{ approve_url }}" method="POST" class="confirm-form" data-confirm-text="{{ confirm_text }}">
+            <button type="submit" class="icon-btn icon-approve" title="Approve"><i data-lucide="check"></i></button>
+        </form>
+        <a href="{{ edit_url }}" class="icon-btn" title="Edit"><i data-lucide="pencil"></i></a>
+        <form action="{{ decline_url }}" method="POST" class="delete-form">
+            <button type="submit" class="icon-btn icon-decline" title="Decline"><i data-lucide="x"></i></button>
+        </form>
+    </div>
+</td>
+{% endmacro %}
+
 <header class="header">
     <h1>Approvals</h1>
 </header>
@@ -20,6 +34,10 @@
                 <button type="button" class="tab-btn {{ 'active' if active_tab == 'assets' }}" onclick="switchTab(event, 'tab-assets')">
                     Pending Assets
                     <span class="badge-count">{{ assets|length }}</span>
+                </button>
+                <button type="button" class="tab-btn {{ 'active' if active_tab == 'portfolio' }}" onclick="switchTab(event, 'tab-portfolio')">
+                    Pending Portfolio
+                    <span class="badge-count">{{ portfolio_items|length }}</span>
                 </button>
                 <button type="button" class="tab-btn {{ 'active' if active_tab == 'balances' }}" onclick="switchTab(event, 'tab-balances')">
                     Pending Balances
@@ -42,12 +60,13 @@
                             <th>Status</th>
                             <th>State</th>
                             <th>Creator</th>
-                            <th class="action-col"></th>
+                            <th class="row-actions-col"></th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for trust in trusts %}
-                        <tr>
+                        {% set edit_url = url_for('managed_trusts.edit_managed_trusts_pending', trust_id=trust.trust_id) %}
+                        <tr class="clickable-row" data-href="{{ edit_url }}">
                             <td><strong>{{ trust.trust_name }}</strong>{% if trust.original %}<span class="badge badge-pending name-badge">Modification</span>{% endif %}</td>
                             <td>{{ trust.contract_number or 'N/A' }}</td>
                             <td>{{ trust.tax_number or 'N/A' }}</td>
@@ -65,17 +84,12 @@
                                 </span>
                             </td>
                             <td>{{ trust.inspector_1_user.name if trust.inspector_1_user else 'N/A' }}</td>
-                            <td class="action-cell">
-                                <button type="button" class="icon-btn" onclick="toggleDropdown(event)">
-                                    <i data-lucide="more-vertical"></i>
-                                </button>
-                                <div class="dropdown-menu">
-                                    <a href="{{ url_for('approvals.approve_trust', trust_id=trust.trust_id) }}" class="dropdown-item">Approve</a>
-                                    <form action="{{ url_for('managed_trusts.delete_managed_trusts_pending', trust_id=trust.trust_id) }}" method="POST">
-                                        <button type="submit" class="dropdown-item delete" onclick="return confirm('Are you sure you want to delete this trust?')">Decline</button>
-                                    </form>
-                                </div>
-                            </td>
+                            {{ row_actions(
+                                url_for('approvals.approve_trust', trust_id=trust.trust_id),
+                                edit_url,
+                                url_for('managed_trusts.delete_managed_trusts_pending', trust_id=trust.trust_id),
+                                'Do you want to approve this trust?'
+                            ) }}
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -99,12 +113,13 @@
                             <th>Riporting Currency</th>
                             <th>Status</th>
                             <th>Creator</th>
-                            <th class="action-col"></th>
+                            <th class="row-actions-col"></th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for account in accounts %}
-                        <tr>
+                        {% set edit_url = url_for('bank_accounts.edit_bank_account_pending', account_id=account.account_id) %}
+                        <tr class="clickable-row" data-href="{{ edit_url }}">
                             <td><strong>{{ account.bank_account_name }}</strong>{% if account.original %}<span class="badge badge-pending name-badge">Modification</span>{% endif %}</td>
                             <td>{{ account.account_number_iban | iban if account.account_number_iban else 'N/A' }}</td>
                             <td>{{ account.account_number_pfj | pfj if account.account_number_pfj else 'N/A' }}</td>
@@ -120,17 +135,12 @@
                                 </span>
                             </td>
                             <td>{{ account.inspector_1_user.name if account.inspector_1_user else 'N/A' }}</td>
-                            <td class="action-cell">
-                                <button type="button" class="icon-btn" onclick="toggleDropdown(event)">
-                                    <i data-lucide="more-vertical"></i>
-                                </button>
-                                <div class="dropdown-menu">
-                                    <a href="{{ url_for('approvals.approve_account', account_id=account.account_id) }}" class="dropdown-item">Approve</a>
-                                    <form action="{{ url_for('bank_accounts.delete_account_pending', account_id=account.account_id) }}" method="POST">
-                                        <button type="submit" class="dropdown-item delete" onclick="return confirm('Are you sure you want to delete this account?')">Decline</button>
-                                    </form>
-                                </div>
-                            </td>
+                            {{ row_actions(
+                                url_for('approvals.approve_account', account_id=account.account_id),
+                                edit_url,
+                                url_for('bank_accounts.delete_account_pending', account_id=account.account_id),
+                                'Do you want to approve this bank account?'
+                            ) }}
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -150,12 +160,13 @@
                             <th>Nominal Value</th>
                             <th>Price Quotation Decimals</th>
                             <th>Creator</th>
-                            <th class="action-col"></th>
+                            <th class="row-actions-col"></th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for asset in assets %}
-                        <tr>
+                        {% set edit_url = url_for('managed_assets.edit_managed_assets_pending', asset_id=asset.asset_id) %}
+                        <tr class="clickable-row" data-href="{{ edit_url }}">
                             <td><strong>{{ asset.asset_name }}</strong>{% if asset.original %}<span class="badge badge-pending name-badge">Modification</span>{% endif %}</td>
                             <td>{{ asset.asset_type or 'N/A' }}</td>
                             <td>{{ asset.currency.code if asset.currency else 'N/A' }}</td>
@@ -163,17 +174,56 @@
                             <td class="amount">{{ asset.nominal_value | amount if asset.nominal_value is not none else '-' }}</td>
                             <td>{{ asset.price_decimals if asset.price_decimals is not none else '-' }}</td>
                             <td>{{ asset.inspector_1_user.name if asset.inspector_1_user else 'N/A' }}</td>
-                            <td class="action-cell">
-                                <button type="button" class="icon-btn" onclick="toggleDropdown(event)">
-                                    <i data-lucide="more-vertical"></i>
-                                </button>
-                                <div class="dropdown-menu">
-                                    <a href="{{ url_for('approvals.approve_asset', asset_id=asset.asset_id) }}" class="dropdown-item">Approve</a>
-                                    <form action="{{ url_for('managed_assets.delete_managed_assets_pending', asset_id=asset.asset_id) }}" method="POST">
-                                        <button type="submit" class="dropdown-item delete" onclick="return confirm('Are you sure you want to delete this asset?')">Decline</button>
-                                    </form>
-                                </div>
-                            </td>
+                            {{ row_actions(
+                                url_for('approvals.approve_asset', asset_id=asset.asset_id),
+                                edit_url,
+                                url_for('managed_assets.delete_managed_assets_pending', asset_id=asset.asset_id),
+                                'Do you want to approve this asset?'
+                            ) }}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tab-portfolio" class="tab-pane {{ 'active' if active_tab == 'portfolio' }}">
+            <div class="table-responsive">
+                <table class="account-table">
+                    <thead>
+                        <tr>
+                            <th>Trust</th>
+                            <th>Asset</th>
+                            <th>Type</th>
+                            <th>Date</th>
+                            <th>Transaction</th>
+                            <th class="amount">Asset Number</th>
+                            <th class="amount">Exchange Rate</th>
+                            <th class="amount">Value</th>
+                            <th>Creator</th>
+                            <th class="row-actions-col"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in portfolio_items %}
+                        {% set edit_url = url_for('portfolio.edit_portfolio_pending', portfolio_id=item.portfolio_id) %}
+                        {% set decimals = item.asset.currency.decimals if item.asset and item.asset.currency else 2 %}
+                        <tr class="clickable-row" data-href="{{ edit_url }}">
+                            <td><strong>{{ item.trust.trust_name if item.trust else 'N/A' }}</strong>{% if item.original %}<span class="badge badge-pending name-badge">Modification</span>{% endif %}</td>
+                            <td>{{ item.asset.asset_name if item.asset else 'N/A' }}</td>
+                            <td>{{ item.asset.asset_type if item.asset else 'N/A' }}</td>
+                            <td>{{ item.date.isoformat() if item.date else 'N/A' }}</td>
+                            <td><span class="badge {{ 'badge-active' if item.transaction == 'Buy' else 'badge-inactive' }}">{{ item.transaction }}</span></td>
+                            <td class="amount">{{ item.asset_number | rate(0) if item.asset_number is not none else '-' }}</td>
+                            <td class="amount">{{ item.exchange_rate | rate if item.exchange_rate is not none else '-' }}</td>
+                            <td class="amount"><strong>{{ item.value | amount(decimals) }}</strong> {{ item.asset.currency.code if item.asset and item.asset.currency else '' }}</td>
+                            <td>{{ item.inspector_1_user.name if item.inspector_1_user else 'N/A' }}</td>
+                            {{ row_actions(
+                                url_for('approvals.approve_portfolio', portfolio_id=item.portfolio_id),
+                                edit_url,
+                                url_for('portfolio.delete_portfolio_pending', portfolio_id=item.portfolio_id),
+                                'Do you want to approve this portfolio entry?'
+                            ) }}
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -194,7 +244,7 @@
                             <th class="amount">Balance</th>
                             <th class="amount">Current Approved</th>
                             <th>Creator</th>
-                            <th class="action-col"></th>
+                            <th class="row-actions-col"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -202,8 +252,10 @@
                         {% set acc = balance.account %}
                         {% set decimals = acc.currency.decimals if acc and acc.currency else 2 %}
                         {% set approved = approved_balances.get((balance.account_id, balance.riport_id)) %}
-                        <tr>
-                            <td>{{ balance.riport_date.honap_utolso_napja.isoformat() if balance.riport_date else 'N/A' }}</td>
+                        {% set report_day = balance.riport_date.honap_utolso_napja.isoformat() if balance.riport_date else none %}
+                        {% set edit_url = url_for('data_entry.bank_balances', report_date=report_day, _anchor='account-' ~ balance.account_id) %}
+                        <tr class="clickable-row" data-href="{{ edit_url }}">
+                            <td>{{ report_day or 'N/A' }}</td>
                             <td><strong>{{ acc.bank_account_name if acc else 'N/A' }}</strong></td>
                             <td>{{ acc.trust.trust_name if acc and acc.trust else 'N/A' }}</td>
                             <td>{{ acc.bank.bank_name if acc and acc.bank else 'N/A' }}</td>
@@ -211,19 +263,12 @@
                             <td class="amount"><strong>{{ balance.balance | amount(decimals) }}</strong></td>
                             <td class="amount">{{ approved.balance | amount(decimals) if approved else '-' }}</td>
                             <td>{{ balance.inspector_1_user.name if balance.inspector_1_user else 'N/A' }}</td>
-                            <td class="action-cell">
-                                <button type="button" class="icon-btn" onclick="toggleDropdown(event)">
-                                    <i data-lucide="more-vertical"></i>
-                                </button>
-                                <div class="dropdown-menu">
-                                    <form action="{{ url_for('approvals.approve_balance', account_id=balance.account_id, riport_id=balance.riport_id) }}" method="POST" class="confirm-form" data-confirm-text="Do you want to approve this balance?">
-                                        <button type="submit" class="dropdown-item">Approve</button>
-                                    </form>
-                                    <form action="{{ url_for('data_entry.delete_bank_balance_pending', account_id=balance.account_id, riport_id=balance.riport_id) }}" method="POST">
-                                        <button type="submit" class="dropdown-item delete" onclick="return confirm('Are you sure you want to decline this balance?')">Decline</button>
-                                    </form>
-                                </div>
-                            </td>
+                            {{ row_actions(
+                                url_for('approvals.approve_balance', account_id=balance.account_id, riport_id=balance.riport_id),
+                                edit_url,
+                                url_for('data_entry.delete_bank_balance_pending', account_id=balance.account_id, riport_id=balance.riport_id),
+                                'Do you want to approve this balance?'
+                            ) }}
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -240,6 +285,13 @@
         document.getElementById(tabId).classList.add('active');
         event.currentTarget.classList.add('active');
     }
+
+    document.querySelectorAll('.clickable-row').forEach(row => {
+        row.addEventListener('click', function(e) {
+            if (e.target.closest('.row-actions')) return;
+            window.location.href = row.dataset.href;
+        });
+    });
     </script>
 </main>
 {% endblock %}

@@ -2,17 +2,17 @@
 
 {% block content %}
 <header class="header">
-    <h1>{% if bank %}Edit Bank{% else %}New Bank{% endif %}</h1>
+    <h1>{{ title }}</h1>
 </header>
 
 <main class="content-container">
     <div class="form-card">
-        <form id="bank_form" action="{% if bank %}{{ url_for('banks.edit_bank', id=bank.bank_id) }}{% else %}{{ url_for('banks.new_bank') }}{% endif %}" method="POST" class="form-single-column">
+        <form id="bank_form" action="{{ form_action }}" method="POST" class="form-single-column">
 
             <div class="form-group">
                 <label>Bank Name</label>
                 <div class="input-wrapper">
-                    <input type="text" name="bank_name" id="name" class="form-control" value="{{ bank.bank_name if bank else '' }}" placeholder="e.g. My Custom Bank" required>
+                    <input type="text" name="bank_name" id="name" class="form-control" value="{{ bank.bank_name if bank and bank.bank_name else '' }}" placeholder="e.g. My Custom Bank" required>
                 </div>
             </div>
 
@@ -26,6 +26,14 @@
                         <option value="CH" {% if bank and bank.region == 'CH' %}selected{% endif %}>CH</option>
                         <option value="Other" {% if bank and bank.region == 'Other' %}selected{% endif %}>Other</option>
                     </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="giro_codes">GIRO Codes</label>
+                <div class="input-wrapper">
+                    <i data-lucide="hash"></i>
+                    <input type="text" name="giro_codes" id="giro_codes" class="form-control" value="{{ bank.giro_codes if bank and bank.giro_codes else '' }}" placeholder="e.g. 117 or 101, 103" maxlength="100" autocomplete="off">
                 </div>
             </div>
 

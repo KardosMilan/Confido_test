@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header class="header">
+    <h1>{{ title }}</h1>
+</header>
+
+<main class="content-container">
+    <div class="form-card">
+        <form action="{{ form_action }}" method="POST" class="form-single-column">
+            <div class="form-group">
+                <label for="currency_id">Currency</label>
+                <div class="select-wrapper">
+                    <select id="currency_id" name="currency_id" class="form-control" required>
+                        <option value="" disabled {{ 'selected' if not values.currency_id }}>Select Currency...</option>
+                        {% for c in currencies %}
+                            <option value="{{ c.id }}" {% if values.currency_id == c.id %}selected{% endif %}>{{ c.code }}/HUF - {{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="rate_date">Report Date</label>
+                <div class="input-wrapper">
+                    <i data-lucide="calendar"></i>
+                    <input type="date" name="rate_date" id="rate_date" class="form-control" value="{{ values.rate_date }}" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="rate">Rate (HUF per 1 unit)</label>
+                <div class="input-wrapper">
+                    <i data-lucide="coins"></i>
+                    <input type="text" name="rate" id="rate" class="form-control" inputmode="decimal" autocomplete="off" data-format="amount" data-decimals="6" value="{{ values.rate }}" placeholder="e.g. 395.12" required>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">
+                    <i data-lucide="check" size="18"></i> Save Rate
+                </button>
+                <a href="{{ url_for('exchange_rates.exchange_rates') }}" class="btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</main>
+{% endblock %}

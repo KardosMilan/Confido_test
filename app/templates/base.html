@@ -25,6 +25,7 @@
                 <a href="{{ url_for('approvals.approvals') }}" class="menu-link {% if active_page == 'approvals' %}active{% endif %}">
                     <i data-lucide="check-square"></i>
                     <span>Approvals</span>
+                    <span class="badge-count">{{ approval_count or 0 }}</span>
                 </a>
             </li>
             <li class="menu-item">
@@ -46,15 +47,21 @@
                 </a>
             </li>
             <li class="menu-item">
+                <a href="{{ url_for('portfolio.portfolio') }}" class="menu-link {% if active_page == 'portfolio' %}active{% endif %}">
+                    <i data-lucide="pie-chart"></i>
+                    <span>Portfolio Settings</span>
+                </a>
+            </li>
+            <li class="menu-item">
                 <a href="{{ url_for('data_entry.index') }}" class="menu-link {% if active_page == 'data_entry' %}active{% endif %}">
                     <i data-lucide="clipboard-list"></i>
                     <span>Data Entry</span>
                 </a>
             </li>
             <li class="menu-item">
-                <a href="{{ url_for('banks.banks') }}" class="menu-link {% if active_page == 'banks' %}active{% endif %}">
-                    <i data-lucide="building"></i>
-                    <span>Banks</span>
+                <a href="{{ url_for('banks.data') }}" class="menu-link {% if active_page == 'data' %}active{% endif %}">
+                    <i data-lucide="database"></i>
+                    <span>Data</span>
                 </a>
             </li>
             <li class="menu-item">
@@ -282,8 +289,16 @@
             });
         }
 
+        function initDateInputs() {
+            document.querySelectorAll('input[type="date"]').forEach(input => {
+                if (!input.min) input.min = '1900-01-01';
+                if (!input.max) input.max = '2100-12-31';
+            });
+        }
+
         initTableTools();
         initFormattedInputs();
+        initDateInputs();
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

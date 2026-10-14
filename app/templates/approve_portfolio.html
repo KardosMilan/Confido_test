@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block content %}
+{% from '_macros.html' import change_notice, previous_value %}
+{% set decimals = item.asset.currency.decimals if item.asset and item.asset.currency else 2 %}
+{% set original_decimals = original.asset.currency.decimals if original and original.asset and original.asset.currency else 2 %}
+<header class="header">
+    <h1>Approve Portfolio</h1>
+</header>
+
+<main class="content-container">
+    <div class="form-card">
+        {{ change_notice(original, 'portfolio entry') }}
+        <form action="{{ url_for('approvals.approve_portfolio', portfolio_id=item.portfolio_id) }}" method="POST" class="form-single-column confirm-form" data-confirm-text="Do you want to approve this portfolio entry?">
+            <div class="form-group">
+                <label>Trust</label>
+                <div class="input-wrapper">
+                    <i data-lucide="briefcase"></i>
+                    <input type="text" class="form-control" value="{{ item.trust.trust_name if item.trust else '' }}" disabled>
+                </div>
+                {{ previous_value(original, (original.trust.trust_name if original and original.trust else ''), (item.trust.trust_name if item.trust else '')) }}
+            </div>
+
+            <div class="form-group">
+                <label>Asset</label>
+                <div class="input-wrapper">
+                    <i data-lucide="banknote"></i>
+                    <input type="text" class="form-control" value="{{ item.asset.asset_name ~ ' (' ~ item.asset.asset_type ~ ')' if item.asset else '' }}" disabled>
+                </div>
+                {{ previous_value(original, (original.asset.asset_name if original and original.asset else ''), (item.asset.asset_name if item.asset else '')) }}
+            </div>
+
+            <div class="form-group">
+                <label>Date</label>
+                <div class="input-wrapper">
+                    <i data-lucide="calendar"></i>
+                    <input type="text" class="form-control" value="{{ item.date.isoformat() if item.date else '' }}" disabled>
+                </div>
+                {{ previous_value(original, (original.date.isoformat() if original and original.date else ''), (item.date.isoformat() if item.date else '')) }}
+            </div>
+
+            <div class="form-group">
+                <label>Transaction</label>
+                <div class="input-wrapper">
+                    <i data-lucide="arrow-left-right"></i>
+                    <input type="text" class="form-control" value="{{ item.transaction }}" disabled>
+                </div>
+                {{ previous_value(original, (original.transaction if original else ''), item.transaction) }}
+            </div>
+
+            <div class="form-group">
+                <label>Asset Number</label>
+                <div class="input-wrapper">
+                    <i data-lucide="hash"></i>
+                    <input type="text" class="form-control" value="{{ item.asset_number | rate(0) if item.asset_number is not none else '-' }}" disabled>
+                </div>
+                {{ previous_value(original, (original.asset_number | rate(0) if original and original.asset_number is not none else '-'), (item.asset_number | rate(0) if item.asset_number is not none else '-')) }}
+            </div>
+
+            <div class="form-group">
+                <label>Exchange Rate</label>
+                <div class="input-wrapper">
+                    <i data-lucide="trending-up"></i>
+                    <input type="text" class="form-control" value="{{ item.exchange_rate | rate if item.exchange_rate is not none else '-' }}" disabled>
+                </div>
+                {{ previous_value(original, (original.exchange_rate | rate if original and original.exchange_rate is not none else '-'), (item.exchange_rate | rate if item.exchange_rate is not none else '-')) }}
+            </div>
+
+            <div class="form-group">
+                <label>Value</label>
+                <div class="input-wrapper">
+                    <i data-lucide="coins"></i>
+                    <input type="text" class="form-control" value="{{ item.value | amount(decimals) }} {{ item.asset.currency.code if item.asset and item.asset.currency else '' }}" disabled>
+                </div>
+                {{ previous_value(original, (original.value | amount(original_decimals) if original else ''), (item.value | amount(decimals))) }}
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">
+                    <i data-lucide="check" size="18"></i> Approve
+                </button>
+                <a href="{{ url_for('portfolio.edit_portfolio_pending', portfolio_id=item.portfolio_id) }}" class="btn-secondary">
+                    <i data-lucide="pen" size="18"></i> Edit
+                </a>
+            </div>
+        </form>
+    </div>
+</main>
+{% endblock %}

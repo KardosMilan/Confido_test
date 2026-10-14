@@ -16,12 +16,15 @@ from app.models import (
     TRUST_FIELDS,
     ACCOUNT_FIELDS,
     ASSET_FIELDS,
+    PORTFOLIO_FIELDS,
+    Portfolio,
+    PortfolioPending,
     copy_fields,
 )
 from flask_login import login_required, current_user
 
 ALLOWED_ROLES = ['Admin', 'Approver']
-APPROVAL_TABS = ('trusts', 'accounts', 'assets', 'balances')
+APPROVAL_TABS = ('trusts', 'accounts', 'assets', 'portfolio', 'balances')
 
 approvals_bp = Blueprint('approvals', __name__)
 
@@ -46,6 +49,7 @@ def approvals():
     pending_accounts = BankAccountPending.query.all()
     pending_trusts = ManagedTrustsPending.query.all()
     pending_assets = ManagedAssetsPending.query.all()
+    pending_portfolio = PortfolioPending.query.order_by(PortfolioPending.date.desc()).all()
     pending_balances = (
         BankAccountPendingBalance.query
         .join(RiportDate)
@@ -62,6 +66,7 @@ def approvals():
         accounts=pending_accounts,
         trusts=pending_trusts,
         assets=pending_assets,
+        portfolio_items=pending_portfolio,
         balances=pending_balances,
         approved_balances=approved_balances,
         active_tab=request.args.get('tab') if request.args.get('tab') in APPROVAL_TABS else 'trusts',
@@ -170,3 +175,27 @@ def approve_balance(account_id, riport_id):
     db.session.commit()
 
     return redirect(url_for('approvals.approvals', tab='balances'))
+
+@approvals_bp.route('/approvals/portfolio/<int:portfolio_id>/approve', methods=['GET', 'POST'])
+@login_required
+def approve_portfolio(portfolio_id):
+    pending_item = PortfolioPending.query.get_or_404(portfolio_id)
+
+    if current_user.role not in ALLOWED_ROLES:
+        flash('No permission granted!', 'danger')
+        return redirect(url_for('approvals.approvals', tab='portfolio'))
+
+    if (current_user.role != 'Admin') and (current_user.id == pending_item.inspector_1):
+        flash('You can not approve your own portfolio entry!', 'danger')
+        return redirect(url_for('approvals.approvals', tab='portfolio'))
+
+    if request.method == 'POST':
+        apply_pending(pending_item, Portfolio, PORTFOLIO_FIELDS)
+        return redirect(url_for('approvals.approvals', tab='portfolio'))
+
+    return render_template(
+        'approve_portfolio.html',
+        item=pending_item,
+        original=pending_item.original,
+        active_page='approvals'
+    )

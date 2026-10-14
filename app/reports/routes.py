@@ -3,6 +3,7 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 from app.extensions import db
 from app.models import Report, ManagedTrusts
+from app.validation import parse_form_date
 
 ALLOWED_ROLES = ['Admin', 'Approver']
 REPORT_FIELDS = ('report_name', 'trust_id', 'report_date', 'description')
@@ -10,25 +11,19 @@ REPORT_FIELDS = ('report_name', 'trust_id', 'report_date', 'description')
 reports_bp = Blueprint('reports', __name__)
 
 
-def parse_date(value):
-    try:
-        return datetime.strptime(value or '', '%Y-%m-%d').date()
-    except ValueError:
-        return None
-
-
 def validate_report_form(form):
     values = {
         'report_name': (form.get('report_name') or '').strip(),
         'trust_id': form.get('trust_id', type=int),
-        'report_date': parse_date(form.get('report_date')),
+        'report_date': None,
         'description': (form.get('description') or '').strip() or None,
     }
 
     if not values['report_name']:
         return values, 'Report name is required!'
-    if values['report_date'] is None:
-        return values, 'Please select a valid report date!'
+    values['report_date'], error = parse_form_date(form.get('report_date'), 'Report date', required=True)
+    if error:
+        return values, error
     if values['trust_id'] is not None and db.session.get(ManagedTrusts, values['trust_id']) is None:
         return values, 'Please select a valid trust!'
 

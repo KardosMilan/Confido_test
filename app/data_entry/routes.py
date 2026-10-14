@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 from app.extensions import db
 from app.formatting import format_amount
-from app.models import BankAccount, BankAccountBalance, BankAccountPendingBalance, ManagedTrusts, RiportDate
+from app.models import Bank, BankAccount, BankAccountBalance, BankAccountPendingBalance, ManagedTrusts, RiportDate
 
 ALLOWED_ROLES = ['Admin', 'Approver']
 HISTORY_MONTHS = 24
@@ -54,12 +54,21 @@ def is_active_on(account, report_date):
     return started and not_ended
 
 
-def active_accounts(report_date, trust_id=None):
+def filtered_accounts(trust_id=None, bank_id=None):
     query = BankAccount.query
     if trust_id:
         query = query.filter(BankAccount.trust_id == trust_id)
-    accounts = query.order_by(BankAccount.bank_account_name).all()
-    return [account for account in accounts if is_active_on(account, report_date)]
+    if bank_id:
+        query = query.filter(BankAccount.bank_id == bank_id)
+    return query.order_by(BankAccount.bank_account_name).all()
+
+
+def active_accounts(report_date, trust_id=None, bank_id=None):
+    return [account for account in filtered_accounts(trust_id, bank_id) if is_active_on(account, report_date)]
+
+
+def row_anchor(account_id, report_date, view_all):
+    return f'account-{account_id}-{report_date.isoformat()}' if view_all else f'account-{account_id}'
 
 
 def currency_decimals(account):
@@ -102,49 +111,73 @@ def other_data():
 @login_required
 def bank_balances():
     options = report_date_options()
-    report_date = parse_date(request.args.get('report_date'))
-    if report_date not in options:
-        report_date = options[0]
+    selected = request.args.get('report_date', 'all')
+    report_date = parse_date(selected)
+    view_all = report_date not in options
+    report_dates = options if view_all else [report_date]
     trust_id = request.args.get('trust_id', type=int)
+    bank_id = request.args.get('bank_id', type=int)
 
-    approved = {}
-    pending = {}
-    riport_date = RiportDate.query.filter_by(honap_utolso_napja=report_date).first()
-    if riport_date:
-        approved = {b.account_id: b for b in BankAccountBalance.query.filter_by(riport_id=riport_date.riport_id)}
-        pending = {b.account_id: b for b in BankAccountPendingBalance.query.filter_by(riport_id=riport_date.riport_id)}
+    riport_dates = {
+        riport.riport_id: riport.honap_utolso_napja
+        for riport in RiportDate.query.filter(RiportDate.honap_utolso_napja.in_(report_dates)).all()
+    }
+    approved = {
+        (balance.account_id, riport_dates[balance.riport_id]): balance
+        for balance in BankAccountBalance.query.filter(BankAccountBalance.riport_id.in_(riport_dates)).all()
+    }
+    pending = {
+        (balance.account_id, riport_dates[balance.riport_id]): balance
+        for balance in BankAccountPendingBalance.query.filter(BankAccountPendingBalance.riport_id.in_(riport_dates)).all()
+    }
 
+    accounts = filtered_accounts(trust_id, bank_id)
     rows = []
-    for account in active_accounts(report_date, trust_id):
-        decimals = currency_decimals(account)
-        approved_balance = approved.get(account.account_id)
-        pending_balance = pending.get(account.account_id)
+    for day in report_dates:
+        for account in accounts:
+            if not is_active_on(account, day):
+                continue
+            decimals = currency_decimals(account)
+            approved_balance = approved.get((account.account_id, day))
+            pending_balance = pending.get((account.account_id, day))
 
-        if pending_balance:
-            status = 'Pending Approval'
-        elif approved_balance:
-            status = 'Approved'
-        else:
-            status = 'Missing'
+            if pending_balance:
+                status = 'Pending Approval'
+            elif approved_balance:
+                status = 'Approved'
+            else:
+                status = 'Missing'
 
-        current = pending_balance or approved_balance
-        rows.append({
-            'account': account,
-            'status': status,
-            'decimals': decimals,
-            'saved_value': format_amount(current.balance, decimals) if current else '',
-        })
+            current = pending_balance or approved_balance
+            rows.append({
+                'account': account,
+                'report_date': day,
+                'anchor': row_anchor(account.account_id, day, view_all),
+                'status': status,
+                'decimals': decimals,
+                'saved_value': format_amount(current.balance, decimals) if current else '',
+            })
 
     summary = {status: sum(1 for row in rows if row['status'] == status) for status in BALANCE_STATUSES}
+    banks = (
+        Bank.query
+        .join(BankAccount, BankAccount.bank_id == Bank.bank_id)
+        .distinct()
+        .order_by(Bank.bank_name)
+        .all()
+    )
 
     return render_template(
         'bank_balances.html',
         rows=rows,
         summary=summary,
-        report_date=report_date,
+        view_all=view_all,
+        report_date=None if view_all else report_date,
         report_date_options=options,
         trusts=ManagedTrusts.query.order_by(ManagedTrusts.trust_name).all(),
         trust_id=trust_id,
+        banks=banks,
+        bank_id=bank_id,
         can_edit=current_user.role in ALLOWED_ROLES,
         data_entry_tab='bank_balances',
         active_page='data_entry'
@@ -154,13 +187,16 @@ def bank_balances():
 @login_required
 def save_bank_balance():
     trust_id = request.form.get('trust_id', type=int)
+    bank_id = request.form.get('bank_id', type=int)
     report_date = parse_date(request.form.get('report_date'))
     account_id = request.form.get('account_id', type=int)
+    view_all = request.form.get('view_date') == 'all'
     back_url = url_for(
         'data_entry.bank_balances',
-        report_date=report_date.isoformat() if report_date else None,
+        report_date='all' if view_all else (report_date.isoformat() if report_date else None),
         trust_id=trust_id,
-        _anchor=f'account-{account_id}'
+        bank_id=bank_id,
+        _anchor=row_anchor(account_id, report_date, view_all) if report_date else None
     )
 
     if current_user.role not in ALLOWED_ROLES:

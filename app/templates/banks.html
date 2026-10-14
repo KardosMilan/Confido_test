@@ -3,7 +3,7 @@
 {% block content %}
 
 <header class="header">
-    <h1>Banks</h1>
+    <h1>Data</h1>
     <div class="action-toolbar">
         <a href="{{ url_for('banks.new_bank') }}" class="btn-primary">
             + New Bank
@@ -13,6 +13,8 @@
 
 <main class="content-container">
     <div class="card-full">
+        {% include '_data_tabs.html' %}
+
         <div class="table-responsive">
             <table class="account-table">
                 <thead>
@@ -20,6 +22,7 @@
                         <th>Bank ID</th>
                         <th>Bank Name</th>
                         <th>Region</th>
+                        <th>GIRO Codes</th>
                         <th class="amount">Actions</th>
                     </tr>
                 </thead>
@@ -29,6 +32,7 @@
                         <td><strong>{{ bank.bank_id or 'N/A'}}</strong></td>
                         <td>{{ bank.bank_name or 'N/A'}}</td>
                         <td><span class="badge badge-active">{{ bank.region or 'N/A'}}</span></td>
+                        <td>{{ bank.giro_code_list | join(', ') if bank.giro_codes else '-' }}</td>
                         <td class="amount">
                             <div class="button-group">
                                 <a href="{{ url_for('banks.edit_bank', id=bank.bank_id) }}" class="btn-secondary btn-xs">Edit</a>
@@ -39,7 +43,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr class="empty-row"><td colspan="4">No available banks</td></tr>
+                    <tr class="empty-row"><td colspan="5">No available banks</td></tr>
                     {% endfor %}
 
                 </tbody>

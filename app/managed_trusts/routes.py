@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from datetime import datetime, date
 from app.extensions import db
-from app.models import ManagedTrusts, ManagedTrustsPending, Currency, TRUST_FIELDS, copy_fields
+from app.models import ManagedTrusts, ManagedTrustsPending, Currency, Portfolio, PortfolioPending, TRUST_FIELDS, copy_fields
+from app.validation import parse_form_date
 from flask_login import login_required, current_user
 
 ALLOWED_ROLES = ['Admin', 'Approver']
@@ -9,20 +10,37 @@ ALLOWED_ROLES = ['Admin', 'Approver']
 managed_trusts_bp = Blueprint('managed_trusts', __name__)
 
 
-def parse_date(value):
-    return datetime.strptime(value, '%Y-%m-%d').date() if value else None
-
-
 def status_for(end_date):
     return 'Active' if end_date is None or end_date >= date.today() else 'Inactive'
 
 
-def fill_trust(target, form):
-    end_date = parse_date(form.get('end_date'))
+def validate_trust_dates(form):
+    contract_date, error = parse_form_date(form.get('contract_date'), 'Contract date')
+    if error:
+        return None, error
+    end_date, error = parse_form_date(form.get('end_date'), 'End of management date')
+    if error:
+        return None, error
+    return (contract_date, end_date), None
+
+
+def draft_from_form(form):
+    return ManagedTrustsPending(
+        trust_name=form.get('trust_name'),
+        contract_number=form.get('contract_number'),
+        tax_number=form.get('tax_number'),
+        contract_date=form.get('contract_date'),
+        end_date=form.get('end_date'),
+        riporting_currency=form.get('riporting_currency', type=int),
+    )
+
+
+def fill_trust(target, form, dates):
+    contract_date, end_date = dates
     target.trust_name = form.get('trust_name')
     target.contract_number = form.get('contract_number')
     target.tax_number = form.get('tax_number')
-    target.contract_date = parse_date(form.get('contract_date')) or target.contract_date
+    target.contract_date = contract_date or target.contract_date
     target.end_date = end_date
     target.riporting_currency = form.get('riporting_currency', type=int)
     target.status = status_for(end_date)
@@ -57,8 +75,19 @@ def new_managed_trust():
         return redirect(url_for('managed_trusts.managed_trusts'))
 
     if request.method == 'POST':
+        dates, error = validate_trust_dates(request.form)
+        if error:
+            flash(error, 'danger')
+            return render_trust_form(
+                draft_from_form(request.form),
+                'New Managed Trust',
+                url_for('managed_trusts.new_managed_trust'),
+                url_for('managed_trusts.managed_trusts'),
+                'managed_trusts'
+            )
+
         new_trust = ManagedTrustsPending()
-        fill_trust(new_trust, request.form)
+        fill_trust(new_trust, request.form, dates)
         db.session.add(new_trust)
         db.session.commit()
         flash('Trust saved and sent for approval.', 'success')
@@ -83,12 +112,23 @@ def edit_managed_trusts(trust_id):
     change = trust.pending_changes[0] if trust.pending_changes else None
 
     if request.method == 'POST':
+        dates, error = validate_trust_dates(request.form)
+        if error:
+            flash(error, 'danger')
+            return render_trust_form(
+                draft_from_form(request.form),
+                'Edit Managed Trust',
+                url_for('managed_trusts.edit_managed_trusts', trust_id=trust_id),
+                url_for('managed_trusts.managed_trusts'),
+                'managed_trusts'
+            )
+
         if change is None:
             change = ManagedTrustsPending(original=trust)
             copy_fields(trust, change, TRUST_FIELDS)
             db.session.add(change)
 
-        fill_trust(change, request.form)
+        fill_trust(change, request.form, dates)
         trust.state = "Pending"
 
         db.session.commit()
@@ -111,6 +151,10 @@ def delete_managed_trusts(trust_id):
         flash('No permission granted!', 'danger')
         return redirect(url_for('managed_trusts.managed_trusts'))
 
+    if trust.portfolio_items or PortfolioPending.query.filter_by(trust_id=trust_id).first():
+        flash('This trust has portfolio entries and can not be deleted!', 'danger')
+        return redirect(url_for('managed_trusts.managed_trusts'))
+
     db.session.delete(trust)
     db.session.commit()
     return redirect(url_for('managed_trusts.managed_trusts'))
@@ -125,7 +169,18 @@ def edit_managed_trusts_pending(trust_id):
     trust = ManagedTrustsPending.query.get_or_404(trust_id)
 
     if request.method == 'POST':
-        fill_trust(trust, request.form)
+        dates, error = validate_trust_dates(request.form)
+        if error:
+            flash(error, 'danger')
+            return render_trust_form(
+                draft_from_form(request.form),
+                'Edit Pending Trust',
+                url_for('managed_trusts.edit_managed_trusts_pending', trust_id=trust_id),
+                url_for('approvals.approve_trust', trust_id=trust_id),
+                'approvals'
+            )
+
+        fill_trust(trust, request.form, dates)
         db.session.commit()
         return redirect(url_for('approvals.approvals'))
 

@@ -52,7 +52,7 @@
                     <select id="bank_id" name="bank_id" class="form-control" required>
                         <option value="" disabled {{ 'selected' if not account }}>Select Bank...</option>
                         {% for b in banks %}
-                            <option value="{{ b.bank_id }}" {% if account and account.bank_id == b.bank_id %}selected{% endif %}>{{ b.bank_name }}</option>
+                            <option value="{{ b.bank_id }}" data-giro="{{ b.giro_code_list | join(',') }}" {% if account and account.bank_id == b.bank_id %}selected{% endif %}>{{ b.bank_name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -118,5 +118,24 @@
             </div>
         </form>
     </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const pfjInput = document.getElementById('account_number_pfj');
+    const bankSelect = document.getElementById('bank_id');
+    const prefixOf = value => value.replace(/\D/g, '').slice(0, 3);
+    let lastPrefix = prefixOf(pfjInput.value);
+
+    pfjInput.addEventListener('input', function() {
+        const prefix = prefixOf(pfjInput.value);
+        if (prefix === lastPrefix) return;
+        lastPrefix = prefix;
+        if (prefix.length !== 3) return;
+
+        const match = Array.from(bankSelect.options).find(option => option.dataset.giro && option.dataset.giro.split(',').includes(prefix));
+        if (match) bankSelect.value = match.value;
+    });
+});
+</script>
 </main>
 {% endblock %}

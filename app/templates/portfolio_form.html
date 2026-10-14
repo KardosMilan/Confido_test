@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header class="header">
+    <h1>{{ title }}</h1>
+</header>
+
+<main class="content-container">
+    <div class="form-card">
+        <form id="portfolio_form" action="{{ form_action }}" method="POST" class="form-single-column">
+            <div class="form-group">
+                <label for="trust_id">Trust</label>
+                <div class="select-wrapper">
+                    <select id="trust_id" name="trust_id" class="form-control" required>
+                        <option value="" disabled {{ 'selected' if not values.trust_id }}>Select Trust...</option>
+                        {% for trust in trusts %}
+                            <option value="{{ trust.trust_id }}" {% if values.trust_id == trust.trust_id | string %}selected{% endif %}>{{ trust.trust_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="asset_id">Asset</label>
+                <div class="select-wrapper">
+                    <select id="asset_id" name="asset_id" class="form-control" required>
+                        <option value="" disabled {{ 'selected' if not values.asset_id }}>Select Asset...</option>
+                        {% for asset in assets %}
+                            <option value="{{ asset.asset_id }}"
+                                    data-type="{{ asset.asset_type }}"
+                                    data-nominal="{{ asset.nominal_value if asset.nominal_value is not none else '' }}"
+                                    data-decimals="{{ asset.currency.decimals if asset.currency else 2 }}"
+                                    data-currency="{{ asset.currency.code if asset.currency else '' }}"
+                                    {% if values.asset_id == asset.asset_id | string %}selected{% endif %}>
+                                {{ asset.asset_name }} ({{ asset.asset_type }}{{ ', ' ~ asset.currency.code if asset.currency }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="date">Date</label>
+                <div class="input-wrapper">
+                    <i data-lucide="calendar"></i>
+                    <input type="date" name="date" id="date" class="form-control" value="{{ values.date }}" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="transaction">Transaction</label>
+                <div class="select-wrapper">
+                    <select id="transaction" name="transaction" class="form-control transaction-select {{ 'is-sell' if values.transaction == 'Sell' else 'is-buy' }}" required>
+                        {% for transaction in transaction_types %}
+                            <option value="{{ transaction }}" {% if values.transaction == transaction %}selected{% endif %}>{{ transaction }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group calc-field">
+                <label for="asset_number">Asset Number</label>
+                <div class="input-wrapper">
+                    <i data-lucide="hash"></i>
+                    <input type="text" name="asset_number" id="asset_number" class="form-control" inputmode="decimal" autocomplete="off" data-format="amount" data-decimals="4" value="{{ values.asset_number }}" placeholder="e.g. 100">
+                </div>
+            </div>
+
+            <div class="form-group calc-field">
+                <label for="exchange_rate">Exchange Rate</label>
+                <div class="input-wrapper">
+                    <i data-lucide="trending-up"></i>
+                    <input type="text" name="exchange_rate" id="exchange_rate" class="form-control" inputmode="decimal" autocomplete="off" data-format="amount" data-decimals="6" value="{{ values.exchange_rate }}" placeholder="e.g. 0.985">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="value">Value <span id="value_currency"></span></label>
+                <div class="input-wrapper">
+                    <i data-lucide="banknote"></i>
+                    <input type="text" name="value" id="value" class="form-control" inputmode="decimal" autocomplete="off" data-format="amount" data-decimals="2" value="{{ values.value }}" placeholder="0" required>
+                </div>
+                <span class="field-hint" id="calc_hint"></span>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">
+                    <i data-lucide="check" size="18"></i> Save Portfolio
+                </button>
+                <a href="{{ cancel_url }}" class="btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const assetSelect = document.getElementById('asset_id');
+    const transactionSelect = document.getElementById('transaction');
+    const fields = {
+        quantity: document.getElementById('asset_number'),
+        rate: document.getElementById('exchange_rate'),
+        value: document.getElementById('value'),
+    };
+    const calcGroups = document.querySelectorAll('.calc-field');
+    const hint = document.getElementById('calc_hint');
+    const valueCurrency = document.getElementById('value_currency');
+    const manual = { quantity: false, rate: false, value: false };
+
+    function readNumber(input) {
+        const cleaned = input.value.replace(/\s/g, '').replace(',', '.');
+        return cleaned === '' || isNaN(Number(cleaned)) ? null : Number(cleaned);
+    }
+
+    function selectedAsset() {
+        const option = assetSelect.selectedOptions[0];
+        return option && option.value ? option.dataset : null;
+    }
+
+    function factor() {
+        const asset = selectedAsset();
+        if (!asset) return null;
+        if (asset.type === 'Bond') return asset.nominal ? Number(asset.nominal) : null;
+        if (asset.type === 'Equity') return 1;
+        return null;
+    }
+
+    function writeNumber(input, number, decimals, trim) {
+        let text = number.toFixed(decimals);
+        if (trim && text.includes('.')) text = text.replace(/\.?0+$/, '');
+        input.value = groupAmount(text);
+        INPUT_FORMATS.amount.validate(input);
+    }
+
+    function recalculate() {
+        const multiplier = factor();
+        if (multiplier === null) return;
+        const quantity = readNumber(fields.quantity);
+        const rate = readNumber(fields.rate);
+        const value = readNumber(fields.value);
+        const given = {
+            quantity: manual.quantity && quantity !== null,
+            rate: manual.rate && rate !== null,
+            value: manual.value && value !== null,
+        };
+        const givenCount = Object.values(given).filter(Boolean).length;
+        if (givenCount !== 2) return;
+
+        if (!given.value) {
+            writeNumber(fields.value, quantity * rate * multiplier, Number(fields.value.dataset.decimals), false);
+        } else if (!given.rate && quantity > 0) {
+            writeNumber(fields.rate, value / (quantity * multiplier), 6, true);
+        } else if (!given.quantity && rate > 0) {
+            writeNumber(fields.quantity, value / (rate * multiplier), 4, true);
+        }
+    }
+
+    function updateAsset(shouldRecalculate) {
+        const asset = selectedAsset();
+        const valueOnly = !asset || (asset.type !== 'Bond' && asset.type !== 'Equity');
+        calcGroups.forEach(group => {
+            group.hidden = valueOnly;
+            group.querySelectorAll('input').forEach(input => {
+                input.disabled = valueOnly;
+                input.required = !valueOnly;
+            });
+        });
+
+        fields.value.dataset.decimals = asset ? asset.decimals : 2;
+        INPUT_FORMATS.amount.validate(fields.value);
+        valueCurrency.textContent = asset && asset.currency ? `(${asset.currency})` : '';
+
+        if (!asset) {
+            hint.textContent = '';
+        } else if (asset.type === 'Bond') {
+            hint.textContent = asset.nominal
+                ? `Value = Asset Number × Exchange Rate × Nominal Value (${groupAmount(asset.nominal)})`
+                : 'This bond has no nominal value, the value must be entered manually.';
+        } else if (asset.type === 'Equity') {
+            hint.textContent = 'Value = Asset Number × Exchange Rate';
+        } else {
+            hint.textContent = 'Only the total value is required for this asset type.';
+        }
+        if (shouldRecalculate) recalculate();
+    }
+
+    function updateTransaction() {
+        const isSell = transactionSelect.value === 'Sell';
+        transactionSelect.classList.toggle('is-sell', isSell);
+        transactionSelect.classList.toggle('is-buy', !isSell);
+    }
+
+    Object.entries(fields).forEach(([name, input]) => {
+        input.addEventListener('input', () => {
+            manual[name] = input.value.trim() !== '';
+            recalculate();
+        });
+    });
+
+    const hasQuantity = fields.quantity.value.trim() !== '';
+    const hasRate = fields.rate.value.trim() !== '';
+    manual.quantity = hasQuantity;
+    manual.rate = hasRate;
+    manual.value = fields.value.value.trim() !== '' && !(hasQuantity && hasRate);
+
+    assetSelect.addEventListener('change', () => updateAsset(true));
+    transactionSelect.addEventListener('change', updateTransaction);
+    updateAsset(false);
+    updateTransaction();
+});
+</script>
+</main>
+{% endblock %}

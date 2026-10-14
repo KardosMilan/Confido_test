@@ -1,0 +1,6 @@
+<div class="tabs-container">
+    <nav class="tabs-header">
+        <a href="{{ url_for('banks.banks') }}" class="tab-btn {{ 'active' if data_tab == 'banks' }}">Banks</a>
+        <a href="{{ url_for('exchange_rates.exchange_rates') }}" class="tab-btn {{ 'active' if data_tab == 'exchange_rates' }}">Exchange Rates</a>
+    </nav>
+</div>

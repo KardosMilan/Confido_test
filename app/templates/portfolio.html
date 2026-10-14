@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header class="header">
+    <h1>Portfolio Settings</h1>
+    <a href="{{ url_for('portfolio.new_portfolio') }}" class="btn-primary">
+        <i data-lucide="plus"></i> New Portfolio
+    </a>
+    <div class="table-toolbar">
+        <input type="text" id="tableSearch" class="search-input" placeholder="🔍 Search...">
+    </div>
+</header>
+
+<main class="content-container">
+    <div class="card-full">
+        <div class="table-responsive">
+            <table class="account-table" id="sortableTable">
+                <thead>
+                    <tr>
+                        <th data-sort>Trust&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>Asset&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>Type&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>Date&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort>Transaction&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort class="amount">Asset Number&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort class="amount">Exchange Rate&nbsp;<span class="sort-icon">↕</span></th>
+                        <th data-sort class="amount">Value&nbsp;<span class="sort-icon">↕</span></th>
+                        <th class="action-col"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    {% set decimals = item.asset.currency.decimals if item.asset and item.asset.currency else 2 %}
+                    <tr>
+                        <td><strong>{{ item.trust.trust_name if item.trust else 'N/A' }}</strong>{% if item.pending_changes %}<span class="badge badge-pending name-badge">Pending Change</span>{% endif %}</td>
+                        <td>{{ item.asset.asset_name if item.asset else 'N/A' }}</td>
+                        <td>{{ item.asset.asset_type if item.asset else 'N/A' }}</td>
+                        <td>{{ item.date.isoformat() if item.date else 'N/A' }}</td>
+                        <td><span class="badge {{ 'badge-active' if item.transaction == 'Buy' else 'badge-inactive' }}">{{ item.transaction }}</span></td>
+                        <td class="amount">{{ item.asset_number | rate(0) if item.asset_number is not none else '-' }}</td>
+                        <td class="amount">{{ item.exchange_rate | rate if item.exchange_rate is not none else '-' }}</td>
+                        <td class="amount">{{ item.value | amount(decimals) }} {{ item.asset.currency.code if item.asset and item.asset.currency else '' }}</td>
+                        <td class="action-cell">
+                            <button type="button" class="icon-btn" onclick="toggleDropdown(event)">
+                                <i data-lucide="more-vertical"></i>
+                            </button>
+                            <div class="dropdown-menu">
+                                <a href="{{ url_for('portfolio.edit_portfolio', portfolio_id=item.portfolio_id) }}" class="dropdown-item">Edit</a>
+                                <form action="{{ url_for('portfolio.delete_portfolio', portfolio_id=item.portfolio_id) }}" method="POST" class="delete-form">
+                                    <button type="submit" class="dropdown-item delete">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr class="empty-row">
+                        <td colspan="9">No approved portfolio entries yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+{% endblock %}

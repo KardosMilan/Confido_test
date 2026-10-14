@@ -89,6 +89,10 @@ body {
     color: #ffffff;
 }
 
+.menu-link .badge-count {
+    margin-left: auto;
+}
+
 .sidebar-footer {
     padding: 16px;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -328,6 +332,42 @@ body {
 .icon-btn:hover {
     color: var(--text-main);
     background-color: rgba(0, 0, 0, 0.05);
+}
+
+.icon-btn.icon-approve {
+    color: #15803d;
+}
+
+.icon-btn.icon-approve:hover {
+    color: #15803d;
+    background-color: #dcfce7;
+}
+
+.icon-btn.icon-decline {
+    color: var(--danger);
+}
+
+.icon-btn.icon-decline:hover {
+    color: var(--danger);
+    background-color: #fef2f2;
+}
+
+.row-actions-col {
+    width: 120px;
+}
+
+.row-actions-cell {
+    white-space: nowrap;
+}
+
+.row-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.clickable-row {
+    cursor: pointer;
 }
 
 .badge {
@@ -641,6 +681,25 @@ textarea.form-control {
     color: #b45309;
 }
 
+.field-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.transaction-select.is-buy {
+    color: #15803d;
+    background-color: #f0fdf4;
+    border-color: #86efac;
+    font-weight: 600;
+}
+
+.transaction-select.is-sell {
+    color: #b91c1c;
+    background-color: #fef2f2;
+    border-color: #fca5a5;
+    font-weight: 600;
+}
+
 .form-actions {
     display: flex;
     flex-direction: row;
@@ -749,6 +808,43 @@ textarea.form-control {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.update-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.update-status-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.update-status-item svg {
+    width: 16px;
+    height: 16px;
+}
+
+.update-status-item strong {
+    color: var(--text-main);
+}
+
+.update-failures {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 20px 12px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 12px;
+    color: var(--danger);
 }
 
 .empty-state {

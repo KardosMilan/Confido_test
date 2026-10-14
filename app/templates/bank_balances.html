@@ -17,6 +17,7 @@
                 <label for="report_date">Report Date</label>
                 <div class="select-wrapper">
                     <select id="report_date" name="report_date" class="form-control" onchange="this.form.submit()">
+                        <option value="all" {% if view_all %}selected{% endif %}>All</option>
                         {% for option in report_date_options %}
                             <option value="{{ option.isoformat() }}" {% if option == report_date %}selected{% endif %}>{{ option.isoformat() }}</option>
                         {% endfor %}
@@ -36,6 +37,18 @@
                 </div>
             </div>
 
+            <div class="filter-group">
+                <label for="bank_id">Bank</label>
+                <div class="select-wrapper">
+                    <select id="bank_id" name="bank_id" class="form-control" onchange="this.form.submit()">
+                        <option value="">All Banks</option>
+                        {% for bank in banks %}
+                            <option value="{{ bank.bank_id }}" {% if bank.bank_id == bank_id %}selected{% endif %}>{{ bank.bank_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
             <div class="balance-summary">
                 <span class="badge badge-inactive">Missing: {{ summary['Missing'] }}</span>
                 <span class="badge badge-pending">Pending Approval: {{ summary['Pending Approval'] }}</span>
@@ -47,6 +60,9 @@
             <table class="account-table" id="sortableTable">
                 <thead>
                     <tr>
+                        {% if view_all %}
+                        <th data-sort>Report Date&nbsp;<span class="sort-icon">↕</span></th>
+                        {% endif %}
                         <th data-sort>Account&nbsp;<span class="sort-icon">↕</span></th>
                         <th data-sort>Trust&nbsp;<span class="sort-icon">↕</span></th>
                         <th data-sort>Currency&nbsp;<span class="sort-icon">↕</span></th>
@@ -57,7 +73,10 @@
                 <tbody>
                     {% for row in rows %}
                     {% set acc = row.account %}
-                    <tr id="account-{{ acc.account_id }}">
+                    <tr id="{{ row.anchor }}">
+                        {% if view_all %}
+                        <td>{{ row.report_date.isoformat() }}</td>
+                        {% endif %}
                         <td>
                             <strong>{{ acc.bank_account_name }}</strong>
                             <span class="cell-note">{{ acc.bank.bank_name if acc.bank else 'N/A' }}</span>
@@ -78,9 +97,13 @@
                             {% if can_edit %}
                             <form method="POST" action="{{ url_for('data_entry.save_bank_balance') }}" class="balance-form">
                                 <input type="hidden" name="account_id" value="{{ acc.account_id }}">
-                                <input type="hidden" name="report_date" value="{{ report_date.isoformat() }}">
+                                <input type="hidden" name="report_date" value="{{ row.report_date.isoformat() }}">
+                                <input type="hidden" name="view_date" value="{{ 'all' if view_all else row.report_date.isoformat() }}">
                                 {% if trust_id %}
                                 <input type="hidden" name="trust_id" value="{{ trust_id }}">
+                                {% endif %}
+                                {% if bank_id %}
+                                <input type="hidden" name="bank_id" value="{{ bank_id }}">
                                 {% endif %}
                                 <input type="text" name="balance" class="balance-input" inputmode="decimal" autocomplete="off" data-format="amount" data-decimals="{{ row.decimals }}" value="{{ row.saved_value }}" placeholder="0" {{ 'readonly' if row.saved_value }} required>
                                 {% if row.saved_value %}
@@ -96,7 +119,7 @@
                     </tr>
                     {% else %}
                     <tr class="empty-row">
-                        <td colspan="5">No active bank accounts on {{ report_date.isoformat() }}.</td>
+                        <td colspan="{{ 6 if view_all else 5 }}">{{ 'No bank accounts found.' if view_all else 'No active bank accounts on ' ~ report_date.isoformat() ~ '.' }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
